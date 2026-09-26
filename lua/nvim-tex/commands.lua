@@ -101,6 +101,24 @@ local COMMANDS = {
     { desc = 'Open the quickfix list with errors and warnings' },
   },
   {
+    'TexQfLevel',
+    function(opts)
+      if opts.args ~= '' then
+        qf.set_level(opts.args)
+      else
+        qf.cycle_level()
+      end
+      qf.update(project(), { force_open = true })
+    end,
+    {
+      nargs = '?',
+      complete = function()
+        return qf.levels()
+      end,
+      desc = 'Set or cycle the lowest severity shown in the quickfix list',
+    },
+  },
+  {
     'TexLog',
     function()
       info.log(project())

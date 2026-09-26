@@ -4,6 +4,7 @@ local compiler = require('nvim-tex.compiler')
 local config = require('nvim-tex.config')
 local lsp = require('nvim-tex.lsp')
 local project_mod = require('nvim-tex.project')
+local qf = require('nvim-tex.qf')
 local ts = require('nvim-tex.ts')
 local util = require('nvim-tex.util')
 local viewer = require('nvim-tex.viewer')
@@ -31,7 +32,12 @@ local function info_lines(project, full)
   }
 
   if project.qf_errors or project.qf_warnings then
-    lines[#lines + 1] = ('  diagnostics: %d errors, %d warnings'):format(project.qf_errors or 0, project.qf_warnings or 0)
+    lines[#lines + 1] = ('  diagnostics: %d errors, %d warnings, %d infos (level: %s)'):format(
+      project.qf_errors or 0,
+      project.qf_warnings or 0,
+      project.qf_infos or 0,
+      qf.level()
+    )
   end
   if project.compiler then
     lines[#lines + 1] = '  command:     ' .. table.concat(project.compiler.cmd, ' ')

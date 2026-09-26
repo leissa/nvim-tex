@@ -74,6 +74,9 @@ local function finish_run(project, code, saw_failure)
   local failed = (code ~= nil and code ~= 0) or errors > 0 or saw_failure == true
   project.last_status = failed and 'failed' or 'success'
 
+  -- Infos are deliberately left out of these counts: they are hidden from the
+  -- quickfix list by default, so reporting them would only add noise of its
+  -- own. `:TexStatus` shows the full breakdown.
   if failed then
     util.info_unless(silent, ('compilation failed (%d errors, %d warnings)'):format(errors, warnings))
     emit('CompileFailed', project)

@@ -99,8 +99,19 @@ M.defaults = {
     enabled = true,
     --- Open the quickfix window when the compilation produced entries.
     auto_open = true,
-    --- Also open it when there are only warnings (no errors).
+    --- Also open it when there are only warnings (no errors). Info-level
+    --- messages never open the window on their own.
     open_on_warning = true,
+    --- Lowest severity shown in the quickfix list: 'error', 'warning' or
+    --- 'info'. A LaTeX run narrates most of what it does -- font
+    --- substitutions, package infos -- and that chatter is classified as
+    --- 'info' and hidden by default. `:TexQfLevel` cycles the level without
+    --- recompiling.
+    level = 'warning',
+    --- Collect over/underfull box warnings. They are a typesetting detail
+    --- rather than a defect and outnumber everything else in a real log, so
+    --- they are dropped outright by default -- no level shows them.
+    boxes = false,
     --- Jump to the first entry when opening.
     autojump = false,
     --- Keep the quickfix window open after a successful run.

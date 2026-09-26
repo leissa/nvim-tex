@@ -157,6 +157,7 @@ here, `<localleader>lc` is `<localleader>c`, and so on.
   <localleader>k      stop this compilation                          `n`
   <localleader>K      stop all compilations                          `n`
   <localleader>e      open the quickfix list                         `n`
+  <localleader>E      cycle the quickfix severity level              `n`
   <localleader>o      show the raw compiler output                   `n`
   <localleader>g      compilation status                             `n`
   <localleader>G      compilation status of all projects             `n`
@@ -263,11 +264,15 @@ EDITING MAPPINGS                                       *nvim-tex-edit-mappings*
 :TexStopAll             Stop every compilation.
                                                                    *:TexClean*
 :TexClean[!]            Remove auxiliary files. With [!] the PDF goes too.
-                                                    *:TexView* *:TexErrors*
+                                        *:TexView* *:TexErrors* *:TexQfLevel*
 :TexView                Open the PDF viewer, with forward search.
 :TexForwardSearch       Move the viewer to the cursor position.
 :TexReverseSearch       Ask the viewer for its position.
 :TexErrors              Open the quickfix list.
+:TexQfLevel [{level}]   Show messages down to {level} (`error`, `warning` or
+                        `info`) and reopen the quickfix list. Without an
+                        argument the level is cycled. See
+                        |nvim-tex-quickfix-levels|.
 :TexLog                 Open the LaTeX `.log` file.
                                                     *:TexStatus* *:TexInfo*
 :TexStatus              Report the compilation status of this project.
@@ -413,12 +418,47 @@ included when present.
       open_on_warning = true,    -- ... even without errors
       autojump = false,          -- jump to the first entry
       auto_close = true,         -- close again on a clean run
+      level = 'warning',         -- lowest severity shown; see below
+      boxes = false,             -- collect over/underfull box warnings
       ignore_filters = {},       -- Lua patterns; matching messages are dropped
       height = 8,
     }
 <
-A handful of famously useless messages (underfull boxes, undefined font
-shapes, the hyperref PDF-string warning) are filtered out unconditionally.
+Errors are sorted to the top of the list, and `on input line N` is stripped
+from the message text because the line number has a column of its own.
+
+SEVERITY LEVELS                                      *nvim-tex-quickfix-levels*
+
+A LaTeX run narrates almost everything it does, and on a document of any size
+that chatter buries the handful of messages worth acting on. Instead of
+dropping it, every message is classified and `qf.level` decides how much of it
+reaches the quickfix list:
+
+  `error`     Only what broke the build.
+  `warning`   Plus messages saying something in the document is probably
+            wrong: undefined references, missing citations, package and class
+            warnings. This is the default.
+  `info`      Plus TeX narrating its own work: `Package ... Info`, font
+            substitutions, `Missing character`. These say nothing about
+            whether the document is correct.
+
+Over/underfull boxes sit outside this scheme: they are dropped while the log
+is parsed and no level brings them back. They are a typesetting detail rather
+than a defect, and in a real document they outnumber every other kind of
+message put together. Set `qf.boxes = true` to collect them, and they appear
+as ordinary warnings.
+
+Otherwise nothing is lost at a lower level -- `:TexQfLevel` (or `<localleader>E`) raises
+it again without recompiling, and the quickfix title reports the level in use
+together with the number of messages it is hiding.
+
+The window still opens on its own only for errors, or for warnings when
+`open_on_warning` is set; a run that produced nothing but infos never
+interrupts.
+
+`ignore_filters` is the separate knob for messages you never want to see at
+any level. A few famously useless ones (the hyperref PDF-string warning, the
+typearea and fancyhdr layout complaints) are dropped unconditionally.
 
 ==============================================================================
 11. LSP                                                          *nvim-tex-lsp*

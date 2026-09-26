@@ -1,0 +1,75 @@
+local H = require('tests.helpers')
+local config = require('nvim-tex.config')
+
+describe('config', function()
+  after_each(H.cleanup)
+
+  it('starts from the defaults', function()
+    T.eq('latexmk', config.get('compiler', 'method'))
+    T.eq('auto', config.get('view', 'method'))
+    T.eq('warning', config.get('qf', 'level'))
+    T.eq('`', config.get('imaps', 'leader'))
+  end)
+
+  it('returns the whole table when called without a path', function()
+    T.eq(config.options, config.get())
+  end)
+
+  it('returns nil for an unknown path', function()
+    T.eq(nil, config.get('compiler', 'nope'))
+  end)
+
+  it('deep merges nested tables', function()
+    config.setup({ compiler = { latexmk = { out_dir = 'build' } } })
+    T.eq('build', config.get('compiler', 'latexmk', 'out_dir'))
+    -- Untouched siblings survive the merge.
+    T.eq('latexmk', config.get('compiler', 'latexmk', 'executable'))
+    T.eq(true, config.get('compiler', 'latexmk', 'continuous'))
+  end)
+
+  it('leaves the defaults table untouched', function()
+    config.setup({ compiler = { latexmk = { out_dir = 'build' } } })
+    T.eq('', config.defaults.compiler.latexmk.out_dir)
+  end)
+
+  it('resets on every setup call', function()
+    config.setup({ view = { method = 'zathura' } })
+    config.setup({})
+    T.eq('auto', config.get('view', 'method'))
+  end)
+
+  describe('list-like options', function()
+    it('takes latexmk.options verbatim rather than merging index by index', function()
+      config.setup({ compiler = { latexmk = { options = { '-pdf' } } } })
+      T.eq({ '-pdf' }, config.get('compiler', 'latexmk', 'options'))
+    end)
+
+    it('takes filetypes verbatim', function()
+      config.setup({ filetypes = { 'tex' } })
+      T.eq({ 'tex' }, config.get('filetypes'))
+    end)
+
+    it('takes qf.ignore_filters verbatim', function()
+      config.setup({ qf = { ignore_filters = { 'foo' } } })
+      T.eq({ 'foo' }, config.get('qf', 'ignore_filters'))
+    end)
+
+    it('takes imaps.list and imaps.disabled verbatim', function()
+      config.setup({ imaps = { list = { { lhs = 'q', rhs = '\\q' } }, disabled = { 'a' } } })
+      T.eq({ { lhs = 'q', rhs = '\\q' } }, config.get('imaps', 'list'))
+      T.eq({ 'a' }, config.get('imaps', 'disabled'))
+    end)
+
+    it('keeps the default list when the user does not mention it', function()
+      config.setup({ imaps = { leader = ';' } })
+      T.eq(#config.defaults.imaps.list, #config.get('imaps', 'list'))
+      T.eq(';', config.get('imaps', 'leader'))
+    end)
+  end)
+
+  it('returns the effective options from setup', function()
+    local options = config.setup({ qf = { level = 'error' } })
+    T.eq('error', options.qf.level)
+    T.eq(config.options, options)
+  end)
+end)

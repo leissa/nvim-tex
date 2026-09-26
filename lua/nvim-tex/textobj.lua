@@ -169,6 +169,19 @@ function M.math(inner)
     return
   end
 
+  -- `\[` and `\]` on lines of their own: select the body linewise, the same
+  -- way the environment branch above does. Going through `inner_of` would
+  -- start the selection just after `\[`, which is past the end of that line.
+  local open, close = node:child(0), node:child(node:child_count() - 1)
+  if open and close then
+    local _, _, oer, oec = open:range()
+    local csr, csc = close:range()
+    if csr > oer + 1 and csc == 0 and oec >= #line_at(oer + 1) then
+      select_range(oer + 2, 0, csr, #line_at(csr) - 1, true)
+      return
+    end
+  end
+
   local sr, sc, er, ec = inner_of(node)
   if sr then
     select_range(sr, sc, er, ec)

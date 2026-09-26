@@ -1,5 +1,9 @@
 # nvim-tex
 
+[![CI](https://img.shields.io/github/actions/workflow/status/leissa/nvim-tex/ci.yml?branch=master&label=CI&logo=github&style=flat-square)](https://github.com/leissa/nvim-tex/actions/workflows/ci.yml)
+[![Neovim](https://img.shields.io/badge/Neovim-0.10%2B-57A143?logo=neovim&logoColor=white&style=flat-square)](https://neovim.io)
+[![Lua](https://img.shields.io/badge/made%20with-Lua-2C2D72?logo=lua&logoColor=white&style=flat-square)](https://www.lua.org)
+
 A LaTeX plugin for Neovim, in the spirit of
 [VimTeX](https://github.com/lervag/vimtex), but Neovim-only and written from
 scratch in Lua.
@@ -168,6 +172,26 @@ right line. okular needs its editor command set once in the GUI — see
 ## Documentation
 
 `:help nvim-tex`
+
+## Testing
+
+```sh
+make test                              # the whole suite
+TEST_FILE=tests/qf_spec.lua make test  # one spec file
+make parser                            # build the `latex` parser into .deps
+```
+
+The suite runs in a headless Neovim against `tests/minimal_init.lua` and
+brings its own runner (`tests/runner.lua`), so there is nothing to install.
+The specs that exercise the parse tree — motions, text objects, the `ds`/`cs`/`ts`
+edits, the table of contents — need the `latex` tree-sitter parser. They use the
+one a `:TSInstall latex` left in `stdpath('data')/site/parser`, or the one
+`make parser` builds into `.deps`, and skip when there is neither.
+`NVIM_TEX_LATEX_PARSER` points at a specific `latex.so`.
+
+CI runs the suite on Neovim 0.10, stable and nightly, with the parser built
+from a pinned revision of
+[tree-sitter-latex](https://github.com/latex-lsp/tree-sitter-latex).
 
 ## Disclaimer
 

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep in sync with the Makefile. ABI 14 is understood by Neovim 0.10+.
+  TS_LATEX_REV: fa8df448fc2c0192a8c2f8cfc97de53cb2b4ecb9
+  TS_ABI: "14"
+
+jobs:
+  test:
+    name: test (${{ matrix.neovim }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim: [v0.10.4, stable, nightly]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+
+      - name: Cache the latex tree-sitter parser
+        id: parser
+        uses: actions/cache@v4
+        with:
+          path: .deps/parser
+          key: latex-parser-${{ runner.os }}-${{ env.TS_LATEX_REV }}-abi${{ env.TS_ABI }}
+
+      - name: Build the latex tree-sitter parser
+        if: steps.parser.outputs.cache-hit != 'true'
+        run: |
+          npm install -g tree-sitter-cli
+          make parser
+
+      - name: Run the test suite
+        env:
+          # Fail instead of skipping if the parser did not make it into place.
+          NVIM_TEX_REQUIRE_PARSER: "1"
+        run: make test
+
+      - name: Generate the help tags
+        run: make doc

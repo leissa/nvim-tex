@@ -66,6 +66,7 @@ function M.attach(bufnr)
   treesitter_setup(bufnr)
   require('nvim-tex.lsp').attach(bufnr)
   require('nvim-tex.keymaps').attach(bufnr)
+  require('nvim-tex.imaps').attach(bufnr)
 
   if attached[bufnr] then
     return

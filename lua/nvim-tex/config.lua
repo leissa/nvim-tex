@@ -221,6 +221,116 @@ M.defaults = {
     },
   },
 
+  --- Insert mode math mappings (vimtex's `imaps`). See `nvim-tex.imaps`.
+  imaps = {
+    enabled = true,
+    --- Typed before the `lhs` of every entry that does not bring its own.
+    leader = '`',
+    --- `lhs` values from `list` to leave unmapped.
+    disabled = {},
+    --- Every entry is `{ lhs, rhs, leader, style, wrapper }`:
+    ---   `rhs`     the text to insert, or a function returning it.
+    ---   `style`   shorthand for "read one more character and wrap it in
+    ---             this command": `#bx` gives `\mathbf{x}`.
+    ---   `leader`  overrides `leader` for this entry.
+    ---   `wrapper` when the expansion happens: `'math'` (the default) only
+    ---             inside a math zone, `'trivial'` always. A
+    ---             function(lhs, expand) may be given instead.
+    --- Entries can also be added one at a time with `imaps.add`.
+    list = {
+      { lhs = '0', rhs = '\\emptyset' },
+      { lhs = '2', rhs = '\\sqrt' },
+      { lhs = '6', rhs = '\\partial' },
+      { lhs = '8', rhs = '\\infty' },
+      { lhs = '=', rhs = '\\equiv' },
+      { lhs = '\\', rhs = '\\setminus' },
+      { lhs = '.', rhs = '\\cdot' },
+      { lhs = '*', rhs = '\\times' },
+      { lhs = '+', rhs = '\\dagger' },
+      { lhs = '<', rhs = '\\langle' },
+      { lhs = '>', rhs = '\\rangle' },
+      { lhs = '[', rhs = '\\subseteq' },
+      { lhs = ']', rhs = '\\supseteq' },
+      { lhs = '(', rhs = '\\subset' },
+      { lhs = ')', rhs = '\\supset' },
+      { lhs = 'A', rhs = '\\forall' },
+      { lhs = 'B', rhs = '\\boldsymbol' },
+      { lhs = 'E', rhs = '\\exists' },
+      { lhs = 'H', rhs = '\\hbar' },
+      { lhs = 'N', rhs = '\\nabla' },
+
+      -- Arrows: `j` plus a direction, shifted for the double stroke.
+      { lhs = 'jh', rhs = '\\leftarrow' },
+      { lhs = 'jH', rhs = '\\Leftarrow' },
+      { lhs = 'jj', rhs = '\\downarrow' },
+      { lhs = 'jJ', rhs = '\\Downarrow' },
+      { lhs = 'jk', rhs = '\\uparrow' },
+      { lhs = 'jK', rhs = '\\Uparrow' },
+      { lhs = 'jl', rhs = '\\rightarrow' },
+      { lhs = 'jL', rhs = '\\Rightarrow' },
+
+      -- Greek, lower case.
+      { lhs = 'a', rhs = '\\alpha' },
+      { lhs = 'b', rhs = '\\beta' },
+      { lhs = 'c', rhs = '\\chi' },
+      { lhs = 'd', rhs = '\\delta' },
+      { lhs = 'e', rhs = '\\epsilon' },
+      { lhs = 'f', rhs = '\\phi' },
+      { lhs = 'g', rhs = '\\gamma' },
+      { lhs = 'h', rhs = '\\eta' },
+      { lhs = 'i', rhs = '\\iota' },
+      { lhs = 'k', rhs = '\\kappa' },
+      { lhs = 'l', rhs = '\\lambda' },
+      { lhs = 'm', rhs = '\\mu' },
+      { lhs = 'n', rhs = '\\nu' },
+      { lhs = 'p', rhs = '\\pi' },
+      { lhs = 'q', rhs = '\\theta' },
+      { lhs = 'r', rhs = '\\rho' },
+      { lhs = 's', rhs = '\\sigma' },
+      { lhs = 't', rhs = '\\tau' },
+      { lhs = 'u', rhs = '\\upsilon' },
+      { lhs = 'w', rhs = '\\omega' },
+      { lhs = 'x', rhs = '\\xi' },
+      { lhs = 'y', rhs = '\\psi' },
+      { lhs = 'z', rhs = '\\zeta' },
+
+      -- Greek, upper case. The letters that would collide with a symbol
+      -- above (`A`, `B`, `E`, `H`, `N`) are left to the symbol.
+      { lhs = 'D', rhs = '\\Delta' },
+      { lhs = 'F', rhs = '\\Phi' },
+      { lhs = 'G', rhs = '\\Gamma' },
+      { lhs = 'L', rhs = '\\Lambda' },
+      { lhs = 'P', rhs = '\\Pi' },
+      { lhs = 'Q', rhs = '\\Theta' },
+      { lhs = 'S', rhs = '\\Sigma' },
+      { lhs = 'U', rhs = '\\Upsilon' },
+      { lhs = 'W', rhs = '\\Omega' },
+      { lhs = 'X', rhs = '\\Xi' },
+      { lhs = 'Y', rhs = '\\Psi' },
+
+      -- Greek variants, behind a `v`.
+      { lhs = 've', rhs = '\\varepsilon' },
+      { lhs = 'vf', rhs = '\\varphi' },
+      { lhs = 'vk', rhs = '\\varkappa' },
+      { lhs = 'vp', rhs = '\\varpi' },
+      { lhs = 'vq', rhs = '\\vartheta' },
+      { lhs = 'vr', rhs = '\\varrho' },
+
+      -- Styles, behind their own leader: `#` , a style key, and the
+      -- character to wrap.
+      { leader = '#', lhs = '-', style = 'overline' },
+      { leader = '#', lhs = '/', style = 'slashed' },
+      { leader = '#', lhs = 'b', style = 'mathbf' },
+      { leader = '#', lhs = 'B', style = 'mathbb' },
+      { leader = '#', lhs = 'c', style = 'mathcal' },
+      { leader = '#', lhs = 'f', style = 'mathfrak' },
+
+      -- Two backticks open a quotation in LaTeX, so the leader typed twice
+      -- inserts them, in math and in text alike.
+      { lhs = '`', rhs = '``', wrapper = 'trivial' },
+    },
+  },
+
   mappings = {
     enabled = true,
     --- `<localleader>` is already buffer-local, so unlike vimtex there is no
@@ -255,6 +365,12 @@ function M.setup(opts)
   end
   if vim.tbl_get(user, 'filetypes') then
     M.options.filetypes = user.filetypes
+  end
+  if vim.tbl_get(user, 'imaps', 'list') then
+    M.options.imaps.list = user.imaps.list
+  end
+  if vim.tbl_get(user, 'imaps', 'disabled') then
+    M.options.imaps.disabled = user.imaps.disabled
   end
   return M.options
 end

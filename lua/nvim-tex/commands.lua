@@ -1,5 +1,6 @@
 --- User commands. Every command acts on the project of the current buffer.
 local compiler = require('nvim-tex.compiler')
+local imaps = require('nvim-tex.imaps')
 local info = require('nvim-tex.info')
 local project_mod = require('nvim-tex.project')
 local qf = require('nvim-tex.qf')
@@ -159,6 +160,13 @@ local COMMANDS = {
       toc.toggle(project())
     end,
     { desc = 'Toggle the table of contents' },
+  },
+  {
+    'TexImaps',
+    function()
+      imaps.list()
+    end,
+    { desc = 'List the insert mode math mappings' },
   },
   {
     'TexReload',

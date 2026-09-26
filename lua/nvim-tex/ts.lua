@@ -33,6 +33,36 @@ M.MATH = {
   math_environment = true,
 }
 
+--- Environments that open a math zone. The parse tree already knows this for
+--- every environment whose `\end` is there; the list is only needed while one
+--- is still being typed (see `M.in_math`).
+M.MATH_ENVIRONMENT_NAMES = {
+  align = true,
+  alignat = true,
+  aligned = true,
+  alignedat = true,
+  array = true,
+  bmatrix = true,
+  Bmatrix = true,
+  cases = true,
+  displaymath = true,
+  eqnarray = true,
+  equation = true,
+  flalign = true,
+  gather = true,
+  gathered = true,
+  math = true,
+  matrix = true,
+  multline = true,
+  pmatrix = true,
+  smallmatrix = true,
+  split = true,
+  vmatrix = true,
+  Vmatrix = true,
+  xalignat = true,
+  xxalignat = true,
+}
+
 --- Groups that can act as delimiters for `ad`/`id`.
 M.GROUP = {
   curly_group = true,
@@ -262,6 +292,117 @@ function M.contains(node, row, col)
     return false
   end
   return true
+end
+
+--- How far back `in_math` scans when there is no parse tree to lean on.
+local SCAN_LIMIT = 200
+
+--- Walk the text between two positions and decide whether it ends in math.
+---
+--- This is the hand written fallback for regions the parser could not make
+--- sense of, so it stays deliberately simple: dollars toggle, `\(` and `\[`
+--- open, `\)` and `\]` close, and a math environment does the same.
+---@param bufnr integer
+---@param srow integer 0-indexed
+---@param scol integer
+---@param erow integer 0-indexed
+---@param ecol integer
+---@return boolean
+local function scan_math(bufnr, srow, scol, erow, ecol)
+  local ok, chunks = pcall(vim.api.nvim_buf_get_text, bufnr, srow, scol, erow, ecol, {})
+  if not ok then
+    return false
+  end
+  local text = table.concat(chunks, '\n')
+
+  local math = false
+  local i = 1
+  while i <= #text do
+    local char = text:sub(i, i)
+    if char == '%' then
+      local nl = text:find('\n', i, true)
+      i = nl and nl + 1 or #text + 1
+    elseif char == '$' then
+      math = not math
+      i = i + (text:sub(i, i + 1) == '$$' and 2 or 1)
+    elseif char == '\\' then
+      local pair = text:sub(i, i + 1)
+      local begin_cmd, opened = text:match('^(\\begin%s*{([^}]*)})', i)
+      local end_cmd, closed = text:match('^(\\end%s*{([^}]*)})', i)
+      if pair == '\\(' or pair == '\\[' then
+        math = true
+        i = i + 2
+      elseif pair == '\\)' or pair == '\\]' then
+        math = false
+        i = i + 2
+      elseif begin_cmd then
+        math = math or M.MATH_ENVIRONMENT_NAMES[(opened:gsub('%*$', ''))] == true
+        i = i + #begin_cmd
+      elseif end_cmd then
+        math = math and not M.MATH_ENVIRONMENT_NAMES[(closed:gsub('%*$', ''))]
+        i = i + #end_cmd
+      else
+        -- An escaped character, `\$` among them.
+        i = i + 2
+      end
+    else
+      i = i + 1
+    end
+  end
+  return math
+end
+
+--- The first row of the paragraph `row` (0-indexed) belongs to.
+---@param bufnr integer
+---@param row integer
+---@return integer
+local function paragraph_start(bufnr, row)
+  local limit = math.max(0, row - SCAN_LIMIT)
+  for r = row, limit, -1 do
+    local line = vim.api.nvim_buf_get_lines(bufnr, r, r + 1, false)[1]
+    if line == nil or line:match('^%s*$') then
+      return math.min(r + 1, row)
+    end
+  end
+  return limit
+end
+
+--- Is the position inside a math zone?
+---
+--- Answered from the parse tree, which copes with a formula whose closing
+--- delimiter is not typed yet: the parser inserts a MISSING node and the math
+--- node is there all the same. What it cannot parse at all -- an empty `$$`,
+--- an environment before its `\end` exists -- shows up as an ERROR node, and
+--- only that region is then scanned by hand.
+---@param bufnr integer|nil
+---@param pos integer[]|nil `{ row (1-indexed), col (0-indexed) }`
+---@return boolean
+function M.in_math(bufnr, pos)
+  bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
+  pos = pos or vim.api.nvim_win_get_cursor(0)
+
+  local row = math.max(0, pos[1] - 1)
+  local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1] or ''
+  local col = math.max(0, math.min(pos[2], #line))
+
+  local node = M.node_at_cursor(bufnr, pos)
+  if node then
+    if M.ancestor(node, M.MATH) then
+      return true
+    end
+    local err = M.ancestor(node, function(n)
+      return n:type() == 'ERROR'
+    end)
+    if not err then
+      return false
+    end
+    local srow, scol = err:range()
+    return scan_math(bufnr, srow, scol, row, col)
+  end
+
+  -- No parser at all. Inline math cannot span a blank line, so the paragraph
+  -- is a safe place to start counting.
+  return scan_math(bufnr, paragraph_start(bufnr, row), 0, row, col)
 end
 
 return M

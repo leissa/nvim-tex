@@ -19,7 +19,8 @@ viewer, SyncTeX in both directions, and the quickfix list.
 
 Milestone 1 is done: LSP and tree-sitter integration, `latexmk` control with
 the usual options, viewer and SyncTeX, quickfix, table of contents, and the
-VimTeX mapping set. See [Not implemented yet](#not-implemented-yet).
+VimTeX mapping set including the insert-mode math mappings. See
+[Not implemented yet](#not-implemented-yet).
 
 ## Requirements
 
@@ -81,6 +82,7 @@ already buffer-local, so the extra `l` is redundant. VimTeX's
 | `<localleader>e` | quickfix list — `o` raw output, `q` log   |
 | `<localleader>c` | clean — `C` also removes the PDF          |
 | `<localleader>t` | table of contents — `T` toggles           |
+| `<localleader>m` | list the insert-mode math mappings         |
 | `<localleader>i` | project info — `I` full                   |
 | `<localleader>g` | status — `G` for all projects             |
 | `<localleader>a` | context menu (citation, ref, include)     |
@@ -108,6 +110,34 @@ Editing: `dse` `dsc` `ds$` `dsd`, `cse` `csc` `cs$` `csd`,
 environment, `<F7>` make a command, `<F8>` add delimiter modifiers, and `]]`
 in insert mode to close the current environment or delimiter.
 
+Insert-mode math mappings (VimTeX's `imaps`): a leader — a backtick by
+default — followed by a short sequence inserts a LaTeX command, but only
+inside a math zone. In running text the keys are inserted unchanged, so the
+backtick keeps working for quotes.
+
+| Typed    | Inserted      | Typed     | Inserted      |
+| -------- | ------------- | --------- | ------------- |
+| `` `a `` | `\alpha`      | `` `D ``  | `\Delta`      |
+| `` `8 `` | `\infty`      | `` `ve `` | `\varepsilon` |
+| `` `. `` | `\cdot`       | `` `jl `` | `\rightarrow` |
+| `#bx`    | `\mathbf{x}`  | `` `` ``  | ``` `` ```    |
+
+`:TexImaps` (or `<localleader>m`) lists them all. The list is configuration,
+so entries can be changed, removed or added:
+
+```lua
+require('nvim-tex').setup({
+  imaps = {
+    leader = '`',
+    disabled = { 'H' },                 -- keep `H for yourself
+    list = { ... },                     -- replaces the default list
+  },
+})
+
+-- Or one at a time, keeping the defaults:
+require('nvim-tex.imaps').add({ lhs = 'oo', rhs = '\\circ' })
+```
+
 Every mapping has a command behind it (`:TexCompile`, `:TexView`, `:TexToc`,
 …), so a different layout is just a matter of mapping those instead. Groups
 can be disabled individually via `mappings.motions`, `mappings.text_objects`,
@@ -131,7 +161,6 @@ right line. okular needs its editor command set once in the GUI — see
 
 ## Not implemented yet
 
-- Insert-mode math mappings (VimTeX's `imaps`)
 - LaTeX-aware indentation, and folding beyond `treesitter.fold = true`
 - Compiler backends other than `latexmk`
 - Word counting and syntax-highlighting extensions

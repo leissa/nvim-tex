@@ -15,6 +15,7 @@ CONTENTS                                                    *nvim-tex-contents*
        Motions ............................ |nvim-tex-motions|
        Text objects ....................... |nvim-tex-text-objects|
        Editing mappings ................... |nvim-tex-edit-mappings|
+       Insert mode math mappings .......... |nvim-tex-imaps|
   6. Commands ............................. |nvim-tex-commands|
   7. The main file ........................ |nvim-tex-main-file|
   8. Compiler ............................. |nvim-tex-compiler|
@@ -114,6 +115,8 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
 `treesitter.*`                See |nvim-tex-treesitter|.
 `toc.*`                       See |nvim-tex-toc|.
 `edit.*`                      Toggle maps for |nvim-tex-edit-mappings|.
+`imaps.*`                     Insert mode math mappings. See
+                            |nvim-tex-imaps|.
 `mappings.*`                  See |nvim-tex-mappings|.
 
 ==============================================================================
@@ -133,6 +136,9 @@ LaTeX buffer. Groups can be switched off individually: >lua
       },
     })
 <
+The insert mode math mappings are a group of their own, switched off with
+`imaps = { enabled = false }`. See |nvim-tex-imaps|.
+
 Everything is also available as a command (|nvim-tex-commands|), so a
 different key layout is a matter of mapping those instead.
 
@@ -149,6 +155,7 @@ here, `<localleader>lc` is `<localleader>c`, and so on.
   <localleader>t      open the table of contents                     `n`
   <localleader>T      toggle the table of contents                   `n`
   <localleader>q      open the LaTeX log file                        `n`
+  <localleader>m      list the insert mode math mappings             `n`
   <localleader>v      view the PDF (with forward search)             `n`
   <localleader>r      reverse search                                 `n`
   <localleader>l      start or stop compilation                      `n`
@@ -246,6 +253,56 @@ EDITING MAPPINGS                                       *nvim-tex-edit-mappings*
 `tsd` and `tsD` take a [count] to move several steps through
 `edit.delim_toggle_mod_list`.
 
+------------------------------------------------------------------------------
+INSERT MODE MATH MAPPINGS                                      *nvim-tex-imaps*
+
+VimTeX's `imaps`: a leader -- a backtick by default -- followed by a short
+sequence inserts a LaTeX command. The expansion only happens inside a math
+zone; in running text the typed keys are inserted unchanged, so the backtick
+is still available for quotes. Whether the cursor is in math is decided from
+the parse tree, which also covers a formula whose closing delimiter has not
+been typed yet.
+
+  TYPED    INSERTED        TYPED     INSERTED ~
+  `a       \alpha          `D        \Delta
+  `ve      \varepsilon     `8        \infty
+  `.       \cdot           `jl       \rightarrow
+  `0       \emptyset       `A        \forall
+  #bx      \mathbf{x}      ``        ``
+
+The full list is |:TexImaps| (or `<localleader>m`). It has three layers:
+the symbols and Greek letters behind `imaps.leader`, the styles behind `#`,
+which take one more character and wrap it, and the leader typed twice, which
+inserts the two backticks that open a LaTeX quotation.
+
+Everything is configuration: >lua
+
+    require('nvim-tex').setup({
+      imaps = {
+        enabled = true,
+        leader = '`',
+        disabled = { 'H' },     -- leave `H alone
+        list = { ... },         -- replaces the default list entirely
+      },
+    })
+<
+A single map is easier to add than to merge a whole list: >lua
+
+    require('nvim-tex.imaps').add({ lhs = 'oo', rhs = '\\circ' })
+<
+An entry understands these keys:
+
+`lhs`       The sequence typed after the leader. Taken literally.
+`rhs`       The text to insert, or a function receiving the typed sequence
+          and returning the text.
+`style`     Shorthand for "read one more character and wrap it in this
+          command": `style = 'mathbf'` turns `#bx` into `\mathbf{x}`.
+`leader`    Overrides `imaps.leader` for this entry.
+`wrapper`   Decides whether the expansion happens at all. `'math'` (the
+          default) expands inside math zones and inserts the typed keys
+          elsewhere, `'trivial'` always expands. A function(lhs, expand)
+          may be given instead, where `expand()` produces the text.
+
 ==============================================================================
 6. COMMANDS                                                 *nvim-tex-commands*
 
@@ -274,6 +331,8 @@ EDITING MAPPINGS                                       *nvim-tex-edit-mappings*
                         argument the level is cycled. See
                         |nvim-tex-quickfix-levels|.
 :TexLog                 Open the LaTeX `.log` file.
+                                                                   *:TexImaps*
+:TexImaps               List the insert mode math mappings.
                                                     *:TexStatus* *:TexInfo*
 :TexStatus              Report the compilation status of this project.
 :TexStatusAll           Report the status of every known project.
@@ -562,7 +621,6 @@ Deliberately different:
   - `<plug>` mappings are replaced by commands and the Lua API.
 
 Not implemented yet:
-  - Insert mode math mappings (VimTeX's `imaps`, `<localleader>lm`).
   - Folding beyond `treesitter.fold`, and LaTeX-aware indentation.
   - Compiler backends other than `latexmk`.
   - `:VimtexCountWords` and the syntax-highlighting extensions.

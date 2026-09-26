@@ -1,0 +1,541 @@
+*nvim-tex.txt*   A Neovim-only LaTeX plugin built on LSP and tree-sitter
+
+Author:  Roland Leißa
+License: MIT
+
+==============================================================================
+CONTENTS                                                    *nvim-tex-contents*
+
+  1. Introduction ......................... |nvim-tex-introduction|
+  2. Requirements ......................... |nvim-tex-requirements|
+  3. Installation ......................... |nvim-tex-installation|
+  4. Configuration ........................ |nvim-tex-configuration|
+  5. Mappings ............................. |nvim-tex-mappings|
+       Leader mappings .................... |nvim-tex-leader-mappings|
+       Motions ............................ |nvim-tex-motions|
+       Text objects ....................... |nvim-tex-text-objects|
+       Editing mappings ................... |nvim-tex-edit-mappings|
+  6. Commands ............................. |nvim-tex-commands|
+  7. The main file ........................ |nvim-tex-main-file|
+  8. Compiler ............................. |nvim-tex-compiler|
+  9. Viewer ............................... |nvim-tex-viewer|
+ 10. Quickfix ............................. |nvim-tex-quickfix|
+ 11. LSP .................................. |nvim-tex-lsp|
+ 12. Tree-sitter .......................... |nvim-tex-treesitter|
+ 13. Table of contents .................... |nvim-tex-toc|
+ 14. Events ............................... |nvim-tex-events|
+ 15. Differences from VimTeX .............. |nvim-tex-vimtex|
+ 16. Credits .............................. |nvim-tex-credits|
+
+==============================================================================
+1. INTRODUCTION                                         *nvim-tex-introduction*
+
+nvim-tex is a LaTeX plugin for Neovim. It takes its interface from VimTeX but
+is written from scratch in Lua, with two deliberate restrictions:
+
+  - Neovim only. There is no Vim compatibility layer and no Vimscript.
+  - Structure comes from tree-sitter, language intelligence from the LSP.
+    The plugin has no LaTeX parser and no syntax-group heuristics of its own.
+
+What the plugin itself provides is the part neither tree-sitter nor texlab
+covers: driving `latexmk`, the PDF viewer, SyncTeX in both directions, and the
+quickfix list.
+
+==============================================================================
+2. REQUIREMENTS                                         *nvim-tex-requirements*
+
+Required:
+  - Neovim 0.10 or newer (0.11+ recommended)
+  - The `latex` tree-sitter parser: `:TSInstall latex`
+  - `latexmk`, which ships with TeX Live and MiKTeX
+
+Optional but recommended:
+  - `texlab` for completion, diagnostics, references and renaming
+  - A SyncTeX capable PDF viewer: zathura, sioyek, okular or Skim
+  - `dbus-send` for forward search into a running zathura
+  - `texdoc` for the |K| mapping
+
+Run `:checkhealth nvim-tex` to see what is available.
+
+==============================================================================
+3. INSTALLATION                                         *nvim-tex-installation*
+
+With lazy.nvim: >lua
+
+    {
+      'nvim-tex',
+      ft = { 'tex', 'plaintex', 'latex' },
+      opts = {},
+    }
+<
+Calling `setup` is optional. The defaults apply as soon as the plugin is
+loaded, so `opts = {}` above only exists to make lazy.nvim call it.
+
+==============================================================================
+4. CONFIGURATION                                       *nvim-tex-configuration*
+
+                                                            *nvim-tex-setup()*
+>lua
+    require('nvim-tex').setup({
+      compiler = {
+        latexmk = {
+          continuous = true,
+          out_dir = 'build',
+        },
+      },
+      view = { method = 'zathura' },
+      mappings = { prefix = '<localleader>' },
+    })
+<
+The full default table lives in `lua/nvim-tex/config.lua` and is printed by
+`:TexInfo!`. The most useful keys:
+
+`enabled`                     Set to false to disable the plugin entirely.
+`filetypes`                   Filetypes to attach to.
+`main_file`                   Force the main file. A string, or a
+                            function(bufnr) returning a path. See
+                            |nvim-tex-main-file|.
+`cache_root`                  Where compiler scratch data is kept.
+
+`compiler.enabled`            Enable the compiler interface.
+`compiler.method`             Only `'latexmk'` for now.
+`compiler.silent`             Suppress start/stop/success messages.
+`compiler.build_on_save`      Run a single shot compilation on `:write`.
+`compiler.latexmk.*`          See |nvim-tex-compiler|.
+
+`view.enabled`                Enable the viewer interface.
+`view.method`                 `'auto'`, `'zathura'`, `'sioyek'`, `'okular'`,
+                            `'skim'` or `'general'`. See |nvim-tex-viewer|.
+`view.forward_search_on_start`
+                            Jump to the cursor position when opening.
+
+`qf.*`                        See |nvim-tex-quickfix|.
+`lsp.*`                       See |nvim-tex-lsp|.
+`treesitter.*`                See |nvim-tex-treesitter|.
+`toc.*`                       See |nvim-tex-toc|.
+`edit.*`                      Toggle maps for |nvim-tex-edit-mappings|.
+`mappings.*`                  See |nvim-tex-mappings|.
+
+==============================================================================
+5. MAPPINGS                                                 *nvim-tex-mappings*
+
+All mappings are buffer-local and are created when the plugin attaches to a
+LaTeX buffer. Groups can be switched off individually: >lua
+
+    require('nvim-tex').setup({
+      mappings = {
+        enabled = true,        -- all mappings
+        prefix = '<localleader>',
+        motions = true,        -- ]] [[ ]m [n ...
+        text_objects = true,   -- ae ie ac ic ...
+        surround = true,       -- dse cse tss <F6> ...
+        doc_package = true,    -- K
+      },
+    })
+<
+Everything is also available as a command (|nvim-tex-commands|), so a
+different key layout is a matter of mapping those instead.
+
+------------------------------------------------------------------------------
+LEADER MAPPINGS                                      *nvim-tex-leader-mappings*
+
+Note the difference from VimTeX: `<localleader>` is already buffer-local, so
+the extra `l` layer is dropped. VimTeX's `<localleader>ll` is `<localleader>l`
+here, `<localleader>lc` is `<localleader>c`, and so on.
+
+  LHS                 ACTION                                       MODE ~
+  <localleader>i      project information                            `n`
+  <localleader>I      project information, full                      `n`
+  <localleader>t      open the table of contents                     `n`
+  <localleader>T      toggle the table of contents                   `n`
+  <localleader>q      open the LaTeX log file                        `n`
+  <localleader>v      view the PDF (with forward search)             `n`
+  <localleader>r      reverse search                                 `n`
+  <localleader>l      start or stop compilation                      `n`
+  <localleader>L      compile the operated text / selection         `nx`
+  <localleader>S      compile once (single shot)                     `n`
+  <localleader>k      stop this compilation                          `n`
+  <localleader>K      stop all compilations                          `n`
+  <localleader>e      open the quickfix list                         `n`
+  <localleader>o      show the raw compiler output                   `n`
+  <localleader>g      compilation status                             `n`
+  <localleader>G      compilation status of all projects             `n`
+  <localleader>c      clean auxiliary files                          `n`
+  <localleader>C      clean auxiliary files and the PDF              `n`
+  <localleader>x      reload nvim-tex                                `n`
+  <localleader>X      forget all cached project state                `n`
+  <localleader>s      toggle the main file                           `n`
+  <localleader>a      context menu                                   `n`
+
+                                                     *nvim-tex-context-menu*
+The context menu (`<localleader>a`) acts on whatever is under the cursor: it
+jumps to the `.bib` entry of a citation, to the `\label` of a reference, or
+opens the file of an `\input`. On a `\usepackage` it opens the package
+documentation, and everywhere else it falls back to |vim.lsp.buf.definition()|.
+
+------------------------------------------------------------------------------
+MOTIONS                                                      *nvim-tex-motions*
+
+All motions are |exclusive|, take a [count] and work in normal, visual and
+operator-pending mode.
+
+  ]]    next start of a section          [[    previous start of a section
+  ][    next end of a section            []    previous end of a section
+  ]m    next `\begin`                    [m    previous `\begin`
+  ]M    next `\end`                      [M    previous `\end`
+  ]n    next start of a math zone        [n    previous start of a math zone
+  ]N    next end of a math zone          [N    previous end of a math zone
+  ]r    next `\begin{frame}`             [r    previous `\begin{frame}`
+  ]R    next `\end{frame}`               [R    previous `\end{frame}`
+  ]/    next comment                     [/    previous comment
+  ]*    next end of a comment            [*    previous end of a comment
+  %     jump between `\begin` and `\end`, or between math delimiters
+
+`%` falls back to the built-in |%| when the cursor is not on an environment
+marker or a math delimiter.
+
+------------------------------------------------------------------------------
+TEXT OBJECTS                                            *nvim-tex-text-objects*
+
+Available in visual and operator-pending mode.
+
+  ae ie   environment, `document` excluded
+  ac ic   command; `ic` is the command name without the backslash
+  a$ i$   math zone (`$...$`, `\[...\]`, `equation`, `align`, ...)
+  ad id   delimiters, including `\left( ... \right)`
+  am im   `\item`
+  aP iP   section
+
+Examples: >
+
+  BEFORE                       KEYS    AFTER
+  \comm|and{arg}               dic     \{arg}
+  \command{a|rg}               gUac    \COMMAND{ARG}
+  \left( as|d \right)          cid     \left(|\right)
+
+  \begin{x}                    die     \begin{x}
+    hello world|                       \end{x}
+  \end{x}
+<
+------------------------------------------------------------------------------
+EDITING MAPPINGS                                       *nvim-tex-edit-mappings*
+
+  dse   delete the surrounding environment            `n`
+  dsc   delete the surrounding command                `n`
+  ds$   delete the surrounding math zone              `n`
+  dsd   delete the surrounding delimiter              `n`
+  cse   change the surrounding environment            `n`
+  csc   change the surrounding command                `n`
+  cs$   change the surrounding math zone              `n`
+  csd   change the surrounding delimiter              `n`
+  tsf   toggle `\frac{a}{b}` <-> `a/b`               `nx`
+  tsc   toggle a starred command                      `n`
+  tsb   toggle the trailing `\\`                      `n`
+  tss   toggle a starred environment                  `n`
+  tse   toggle the environment (see `edit.env_toggle_map`)   `n`
+  ts$   toggle inline <-> displayed math              `n`
+  tsd   cycle delimiter modifiers forwards           `nx`
+  tsD   cycle delimiter modifiers backwards          `nx`
+  <F6>  surround the line / selection with an environment   `nx`
+  <F7>  turn the word / selection into a command     `nxi`
+  <F8>  add modifiers to the delimiters in the math zone    `n`
+  ]]    close the current environment or delimiter     `i`
+  K     open the documentation of the package under the cursor   `n`
+
+`tsd` and `tsD` take a [count] to move several steps through
+`edit.delim_toggle_mod_list`.
+
+==============================================================================
+6. COMMANDS                                                 *nvim-tex-commands*
+
+                                                                 *:TexCompile*
+:TexCompile             Start compilation, or stop it when it is running.
+                                                               *:TexCompileSS*
+:TexCompileSS           Compile once, ignoring `compiler.latexmk.continuous`.
+                                                         *:TexCompileSelected*
+:[range]TexCompileSelected
+                        Compile [range] as a standalone document, reusing the
+                        preamble of the main file, and view the result.
+                                                           *:TexCompileOutput*
+:TexCompileOutput       Show the raw compiler output.
+                                                    *:TexStop* *:TexStopAll*
+:TexStop                Stop the compilation of this project.
+:TexStopAll             Stop every compilation.
+                                                                   *:TexClean*
+:TexClean[!]            Remove auxiliary files. With [!] the PDF goes too.
+                                                    *:TexView* *:TexErrors*
+:TexView                Open the PDF viewer, with forward search.
+:TexForwardSearch       Move the viewer to the cursor position.
+:TexReverseSearch       Ask the viewer for its position.
+:TexErrors              Open the quickfix list.
+:TexLog                 Open the LaTeX `.log` file.
+                                                    *:TexStatus* *:TexInfo*
+:TexStatus              Report the compilation status of this project.
+:TexStatusAll           Report the status of every known project.
+:TexInfo[!]             Show project information; [!] dumps the config too.
+                                                     *:TexToc* *:TexTocToggle*
+:TexToc                 Open the table of contents.
+:TexTocToggle           Toggle the table of contents.
+                                                 *:TexReload* *:TexToggleMain*
+:TexReload              Reload the plugin's Lua modules.
+:TexReloadState         Forget all cached project state.
+:TexToggleMain          Toggle the main file between the detected one and the
+                        current buffer. See |nvim-tex-main-file|.
+                                              *:TexContextMenu* *:TexDocPackage*
+:TexContextMenu         Act on the item under the cursor.
+:TexDocPackage          Open the documentation of the package under the cursor.
+                                                             *:TexEnvSurround*
+:[range]TexEnvSurround [name]
+                        Wrap [range] in an environment.
+
+==============================================================================
+7. THE MAIN FILE                                           *nvim-tex-main-file*
+
+Compilation always runs on the main file of the project, never on the buffer
+you happen to be editing. It is found by the first rule that applies:
+
+  1. The buffer variable `b:tex_main`.
+  2. The `main_file` option.
+  3. A `% !TEX root = ...` directive in the first or last five lines.
+  4. The buffer itself, if it has a `\documentclass`.
+  5. A `*.tex` file with a `\documentclass` in this or a parent directory,
+     preferring one that `\input`s the current file. `*.latexmain` marker
+     files are honoured as well.
+  6. The current buffer, as a last resort.
+
+`:TexToggleMain` (`<localleader>s`) switches between the detected main file
+and the current buffer, which is handy while working on a single chapter.
+
+A `% !TEX program = lualatex` directive selects the engine; see
+`compiler.latexmk.engines`.
+
+==============================================================================
+8. COMPILER                                                 *nvim-tex-compiler*
+
+The `latexmk` backend is configured under `compiler.latexmk`: >lua
+
+    compiler = {
+      latexmk = {
+        executable = 'latexmk',       -- string or list (e.g. docker exec ...)
+        continuous = true,            -- `-pvc`
+        options = {
+          '-verbose',
+          '-file-line-error',
+          '-synctex=1',
+          '-interaction=nonstopmode',
+        },
+        aux_dir = '',                 -- string or function(file_info)
+        out_dir = '',
+        clean_ext = '',               -- extra extensions for :TexClean
+        hooks = {},                   -- functions called per output line
+        engines = { ['_'] = '-pdf', lualatex = '-lualatex', ... },
+      },
+    }
+<
+`continuous` is the important one. With it, `:TexCompile` starts
+`latexmk -pvc` and the document is rebuilt whenever a file changes; the
+command toggles, so pressing `<localleader>l` again stops it. Without it,
+every invocation is a single run.
+
+Relative `aux_dir` and `out_dir` are resolved against the directory of the
+main file, and the directories are created if missing. Both may be functions
+of a `file_info` table with the keys `root`, `target`, `target_basename`,
+`target_name` and `jobname`. `$VIMTEX_OUTPUT_DIRECTORY` and
+`$NVIM_TEX_OUTPUT_DIRECTORY` take priority over both.
+
+Compilations are stopped when Neovim exits, so no `latexmk -pvc` is left
+behind.
+
+`compiler.latexmk.options` is replaced wholesale when you set it, not merged,
+because the defaults are only useful as a complete set.
+
+==============================================================================
+9. VIEWER                                                     *nvim-tex-viewer*
+
+`view.method` selects the backend; `'auto'` takes the first of zathura,
+sioyek, Skim, okular, `general` that is installed.
+
+Forward search happens on `:TexView` and `:TexForwardSearch`. Inverse search
+is pushed by the viewer: nvim-tex starts a |--listen| server on demand and
+passes a callback command to the viewer, which ends up calling
+`v:lua.NvimTexInverseSearch(line, file)` in this Neovim instance.
+
+                                                       *nvim-tex-viewer-zathura*
+zathura ~
+Forward search into a running instance goes through D-Bus, so `dbus-send` is
+needed; without it a second window is opened instead. Inverse search is
+ctrl-click and is configured automatically.
+
+                                                        *nvim-tex-viewer-sioyek*
+sioyek ~
+Uses `--reuse-window`, `--forward-search-file` and `--inverse-search`.
+
+                                                        *nvim-tex-viewer-okular*
+okular ~
+Forward search uses `--unique` with a `#src:` fragment. Inverse search cannot
+be set from the command line: open Settings -> Configure Okular -> Editor,
+choose "Custom Text Editor" and enter >
+
+  nvim --server <servername> --remote-expr "v:lua.NvimTexInverseSearch(%l, '%f')"
+<
+`:TexInfo` shows the server address to put in place of `<servername>`.
+
+                                                           *nvim-tex-viewer-skim*
+Skim (macOS) ~
+Uses Skim's `displayline` helper.
+
+                                                       *nvim-tex-viewer-general*
+general ~
+Runs an arbitrary command. The placeholders `@pdf`, `@tex`, `@line`, `@col`
+and `@server` are substituted in `view.general.args`: >lua
+
+    view = {
+      method = 'general',
+      general = {
+        executable = 'evince',
+        args = { '@pdf' },
+      },
+    }
+<
+==============================================================================
+10. QUICKFIX                                                *nvim-tex-quickfix*
+
+After every compilation the `.log` file is parsed into the quickfix list. The
+parser tracks the `(file ... )` stack TeX prints, so warnings without a file
+name are still attributed correctly; `max_print_line=2000` is exported to the
+compiler to keep TeX from wrapping paths. BibTeX/Biber `.blg` warnings are
+included when present.
+
+>lua
+    qf = {
+      enabled = true,
+      auto_open = true,          -- open when there is something to show
+      open_on_warning = true,    -- ... even without errors
+      autojump = false,          -- jump to the first entry
+      auto_close = true,         -- close again on a clean run
+      ignore_filters = {},       -- Lua patterns; matching messages are dropped
+      height = 8,
+    }
+<
+A handful of famously useless messages (underfull boxes, undefined font
+shapes, the hyperref PDF-string warning) are filtered out unconditionally.
+
+==============================================================================
+11. LSP                                                          *nvim-tex-lsp*
+
+texlab is started per project root with |vim.lsp.start()|, which reuses an
+existing client when one matches. If a client named `texlab` is already
+attached to the buffer, nvim-tex leaves it alone, so an existing lspconfig
+setup keeps working.
+
+>lua
+    lsp = {
+      enabled = true,
+      name = 'texlab',
+      cmd = { 'texlab' },
+      settings = { texlab = { ... } },
+      config = {},               -- merged into the vim.lsp.start config
+    }
+<
+`config` is the escape hatch for `capabilities`, `on_attach`, `handlers` and
+anything else |vim.lsp.start()| accepts.
+
+texlab's own builder and forward search are disabled by default, because
+nvim-tex drives `latexmk` and the viewer itself. Completion, diagnostics,
+hover, references, rename and document symbols come from texlab.
+
+==============================================================================
+12. TREE-SITTER                                           *nvim-tex-treesitter*
+
+Motions, text objects, the editing mappings and the table of contents all read
+the `latex` parse tree. Without the parser these features are unavailable and
+the plugin says so once per buffer.
+
+>lua
+    treesitter = {
+      enabled = true,
+      warn_missing_parser = true,
+      highlight = true,          -- vim.treesitter.start()
+      fold = false,              -- foldexpr = v:lua.vim.treesitter.foldexpr()
+    }
+<
+Set `highlight = false` if another plugin already starts the parser for you.
+
+==============================================================================
+13. TABLE OF CONTENTS                                            *nvim-tex-toc*
+
+`:TexToc` opens a window listing the sectioning commands of the whole project.
+`\input`, `\include` and `\subfile` are followed, so a multi-file document is
+covered even when only one of its files is open. Beamer frames, `TODO`
+comments and (optionally) labels are listed too.
+
+In the TOC window: `<CR>` jumps to the entry, `r` refreshes, `q` closes.
+
+>lua
+    toc = {
+      split = 'vsplit',          -- 'vsplit', 'split' or 'tab'
+      width = 40,
+      height = 15,
+      close_after_jump = true,
+      show_labels = false,
+      show_includes = true,
+      show_todos = true,
+    }
+<
+==============================================================================
+14. EVENTS                                                    *nvim-tex-events*
+
+The plugin fires |User| autocmds. The `data` table carries `main`, `root` and
+`status`; look the project up with
+`require('nvim-tex.project').projects[data.main]`.
+
+  NvimTexAttach            the plugin attached to a buffer (`data.bufnr`)
+  NvimTexCompileStarted    a compiler job was started
+  NvimTexCompileStopped    the compiler job ended
+  NvimTexCompileSuccess    a compilation run finished without errors
+  NvimTexCompileFailed     a compilation run finished with errors
+  NvimTexInverseSearch     the viewer jumped here (`data.file`, `data.line`)
+
+Example: >lua
+
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'NvimTexCompileSuccess',
+      callback = function(args)
+        vim.notify('built ' .. vim.fn.fnamemodify(args.data.main, ':t'))
+      end,
+    })
+<
+==============================================================================
+15. DIFFERENCES FROM VIMTEX                                   *nvim-tex-vimtex*
+
+nvim-tex is not a fork; it reimplements the parts of VimTeX that are worth
+keeping, and drops the rest.
+
+Deliberately different:
+  - Lua, Neovim only. No Vimscript, no Vim support.
+  - No `l` layer in the leader mappings: `<localleader>l` compiles.
+  - Structure comes from tree-sitter, not from a hand written parser or from
+    syntax groups. Completion and diagnostics come from texlab, not from an
+    omnifunc.
+  - Configuration is one nested table passed to `setup`, not a flat namespace
+    of `g:` variables.
+  - `<plug>` mappings are replaced by commands and the Lua API.
+
+Not implemented yet:
+  - Insert mode math mappings (VimTeX's `imaps`, `<localleader>lm`).
+  - Folding beyond `treesitter.fold`, and LaTeX-aware indentation.
+  - Compiler backends other than `latexmk`.
+  - `:VimtexCountWords` and the syntax-highlighting extensions.
+
+==============================================================================
+16. CREDITS                                                  *nvim-tex-credits*
+
+The interface -- the mapping set, the text objects, the way the compiler and
+viewer are driven -- is taken from VimTeX by Karl Yngve Lervåg, which has been
+the reference LaTeX plugin for Vim and Neovim for years:
+
+  https://github.com/lervag/vimtex
+
+nvim-tex shares no code with it, but owes it the design.
+
+ vim:tw=78:ts=8:noet:ft=help:norl:

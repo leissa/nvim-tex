@@ -39,17 +39,58 @@ Optional: `texlab`, a SyncTeX-capable viewer (zathura, sioyek, okular, Skim),
 
 ## Installation
 
-With [lazy.nvim](https://github.com/folke/lazy.nvim):
+nvim-tex works without calling `setup`: the defaults apply as soon as the
+plugin loads. Call `require('nvim-tex').setup({...})` only to change them.
+
+[lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
-  'nvim-tex',
+  'leissa/nvim-tex',
   ft = { 'tex', 'plaintex', 'latex' },
   opts = {},
 }
 ```
 
-`setup` is optional — the defaults apply as soon as the plugin loads.
+`vim.pack` (built into Neovim 0.12+):
+
+```lua
+vim.pack.add({ 'https://github.com/leissa/nvim-tex' })
+```
+
+[mini.deps](https://github.com/echasnovski/mini.deps):
+
+```lua
+MiniDeps.add({ source = 'leissa/nvim-tex' })
+```
+
+[packer.nvim](https://github.com/wbthomason/packer.nvim):
+
+```lua
+use({ 'leissa/nvim-tex' })
+```
+
+[paq-nvim](https://github.com/savq/paq-nvim):
+
+```lua
+require('paq')({ 'leissa/nvim-tex' })
+```
+
+[vim-plug](https://github.com/junegunn/vim-plug):
+
+```vim
+Plug 'leissa/nvim-tex'
+```
+
+Native packages (`:help packages`):
+
+```sh
+git clone https://github.com/leissa/nvim-tex \
+  ~/.local/share/nvim/site/pack/plugins/start/nvim-tex
+```
+
+Run `:helptags ALL` afterwards if your plugin manager does not generate help
+tags for you.
 
 ## Configuration
 

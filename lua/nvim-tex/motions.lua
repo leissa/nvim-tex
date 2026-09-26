@@ -168,26 +168,66 @@ end
 
 --- Mapping table: lhs -> function. Used by `nvim-tex.keymaps`.
 M.map = {
-  [']]'] = function() M.jump('section', 'start', 'next') end,
-  ['[['] = function() M.jump('section', 'start', 'prev') end,
-  [']['] = function() M.jump('section', 'finish', 'next') end,
-  ['[]'] = function() M.jump('section', 'finish', 'prev') end,
-  [']m'] = function() M.jump('environment', 'start', 'next') end,
-  ['[m'] = function() M.jump('environment', 'start', 'prev') end,
-  [']M'] = function() M.jump('environment', 'finish', 'next') end,
-  ['[M'] = function() M.jump('environment', 'finish', 'prev') end,
-  [']n'] = function() M.jump('math', 'start', 'next') end,
-  ['[n'] = function() M.jump('math', 'start', 'prev') end,
-  [']N'] = function() M.jump('math', 'finish', 'next') end,
-  ['[N'] = function() M.jump('math', 'finish', 'prev') end,
-  [']r'] = function() M.jump('frame', 'start', 'next') end,
-  ['[r'] = function() M.jump('frame', 'start', 'prev') end,
-  [']R'] = function() M.jump('frame', 'finish', 'next') end,
-  ['[R'] = function() M.jump('frame', 'finish', 'prev') end,
-  [']/'] = function() M.jump('comment', 'start', 'next') end,
-  ['[/'] = function() M.jump('comment', 'start', 'prev') end,
-  [']*'] = function() M.jump('comment', 'finish', 'next') end,
-  ['[*'] = function() M.jump('comment', 'finish', 'prev') end,
+  [']]'] = function()
+    M.jump('section', 'start', 'next')
+  end,
+  ['[['] = function()
+    M.jump('section', 'start', 'prev')
+  end,
+  [']['] = function()
+    M.jump('section', 'finish', 'next')
+  end,
+  ['[]'] = function()
+    M.jump('section', 'finish', 'prev')
+  end,
+  [']m'] = function()
+    M.jump('environment', 'start', 'next')
+  end,
+  ['[m'] = function()
+    M.jump('environment', 'start', 'prev')
+  end,
+  [']M'] = function()
+    M.jump('environment', 'finish', 'next')
+  end,
+  ['[M'] = function()
+    M.jump('environment', 'finish', 'prev')
+  end,
+  [']n'] = function()
+    M.jump('math', 'start', 'next')
+  end,
+  ['[n'] = function()
+    M.jump('math', 'start', 'prev')
+  end,
+  [']N'] = function()
+    M.jump('math', 'finish', 'next')
+  end,
+  ['[N'] = function()
+    M.jump('math', 'finish', 'prev')
+  end,
+  [']r'] = function()
+    M.jump('frame', 'start', 'next')
+  end,
+  ['[r'] = function()
+    M.jump('frame', 'start', 'prev')
+  end,
+  [']R'] = function()
+    M.jump('frame', 'finish', 'next')
+  end,
+  ['[R'] = function()
+    M.jump('frame', 'finish', 'prev')
+  end,
+  [']/'] = function()
+    M.jump('comment', 'start', 'next')
+  end,
+  ['[/'] = function()
+    M.jump('comment', 'start', 'prev')
+  end,
+  [']*'] = function()
+    M.jump('comment', 'finish', 'next')
+  end,
+  ['[*'] = function()
+    M.jump('comment', 'finish', 'prev')
+  end,
   ['%'] = M.match_pair,
 }
 

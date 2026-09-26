@@ -49,7 +49,7 @@ describe('qf', function()
 
     it('folds a warning continuation line into the message', function()
       local items = parse({
-        'LaTeX Warning: Reference `sec:intro\' on page 1 undefined on input line 7.',
+        "LaTeX Warning: Reference `sec:intro' on page 1 undefined on input line 7.",
       })
       T.eq(1, #items)
       T.eq('W', items[1].type)
@@ -92,7 +92,7 @@ describe('qf', function()
 
     it('classifies package and class infos as info', function()
       local items = parse({
-        'Package hyperref Info: Option `colorlinks\' set `true\'.',
+        "Package hyperref Info: Option `colorlinks' set `true'.",
         'Class scrbook Info: Some detail.',
       })
       T.eq(2, #items)
@@ -101,7 +101,7 @@ describe('qf', function()
     end)
 
     it('classifies font warnings as info', function()
-      local items = parse({ 'LaTeX Font Warning: Font shape `OT1/cmr/bx/sc\' undefined' })
+      local items = parse({ "LaTeX Font Warning: Font shape `OT1/cmr/bx/sc' undefined" })
       T.eq('I', items[1].type)
     end)
 
@@ -165,8 +165,8 @@ describe('qf', function()
       it('applies the user patterns', function()
         config.setup({ qf = { ignore_filters = { 'Reference `sec:' } } })
         local items = parse({
-          'LaTeX Warning: Reference `sec:intro\' undefined on input line 3.',
-          'LaTeX Warning: Reference `fig:one\' undefined on input line 4.',
+          "LaTeX Warning: Reference `sec:intro' undefined on input line 3.",
+          "LaTeX Warning: Reference `fig:one' undefined on input line 4.",
         })
         T.eq(1, #items)
         T.matches('fig:one', items[1].text)

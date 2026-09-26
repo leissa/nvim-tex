@@ -27,15 +27,21 @@ describe('textobj', function()
     }
 
     it('ae takes the \\begin and \\end with it', function()
-      T.eq(table.concat(ENV, '\n'), selected(ENV, 'one', function()
-        textobj.environment(false)
-      end))
+      T.eq(
+        table.concat(ENV, '\n'),
+        selected(ENV, 'one', function()
+          textobj.environment(false)
+        end)
+      )
     end)
 
     it('ie leaves the markers behind', function()
-      T.eq('  \\item one\n  \\item two', selected(ENV, 'one', function()
-        textobj.environment(true)
-      end))
+      T.eq(
+        '  \\item one\n  \\item two',
+        selected(ENV, 'one', function()
+          textobj.environment(true)
+        end)
+      )
     end)
 
     it('selects the body linewise when it has lines of its own', function()
@@ -55,9 +61,12 @@ describe('textobj', function()
         '\\end{center}',
         '\\end{document}',
       }
-      T.eq('\\begin{center}\nmiddle\n\\end{center}', selected(lines, 'middle', function()
-        textobj.environment(false)
-      end))
+      T.eq(
+        '\\begin{center}\nmiddle\n\\end{center}',
+        selected(lines, 'middle', function()
+          textobj.environment(false)
+        end)
+      )
     end)
 
     it('takes the innermost of nested environments', function()
@@ -68,50 +77,71 @@ describe('textobj', function()
         '\\end{center}',
         '\\end{figure}',
       }
-      T.eq('\\begin{center}\nmiddle\n\\end{center}', selected(lines, 'middle', function()
-        textobj.environment(false)
-      end))
+      T.eq(
+        '\\begin{center}\nmiddle\n\\end{center}',
+        selected(lines, 'middle', function()
+          textobj.environment(false)
+        end)
+      )
     end)
 
     it('does nothing outside an environment', function()
-      T.eq(nil, selected({ 'just prose' }, 'prose', function()
-        textobj.environment(false)
-      end))
+      T.eq(
+        nil,
+        selected({ 'just prose' }, 'prose', function()
+          textobj.environment(false)
+        end)
+      )
     end)
   end)
 
   describe('command', function()
     it('ac takes the whole command', function()
-      T.eq('\\textbf{bold}', selected({ 'a \\textbf{bold} b' }, 'bold', function()
-        textobj.command(false)
-      end))
+      T.eq(
+        '\\textbf{bold}',
+        selected({ 'a \\textbf{bold} b' }, 'bold', function()
+          textobj.command(false)
+        end)
+      )
     end)
 
     it('ic takes the command name, as vimtex does', function()
       -- `dic` on `\\comm|and{arg}` is meant to leave `\\{arg}` behind.
-      T.eq('textbf', selected({ 'a \\textbf{bold} b' }, 'bold', function()
-        textobj.command(true)
-      end))
+      T.eq(
+        'textbf',
+        selected({ 'a \\textbf{bold} b' }, 'bold', function()
+          textobj.command(true)
+        end)
+      )
     end)
   end)
 
   describe('math', function()
     it('a$ includes the dollars', function()
-      T.eq('$a + b$', selected({ 'text $a + b$ text' }, 'a + b', function()
-        textobj.math(false)
-      end))
+      T.eq(
+        '$a + b$',
+        selected({ 'text $a + b$ text' }, 'a + b', function()
+          textobj.math(false)
+        end)
+      )
     end)
 
     it('i$ excludes them', function()
-      T.eq('a + b', selected({ 'text $a + b$ text' }, 'a + b', function()
-        textobj.math(true)
-      end))
+      T.eq(
+        'a + b',
+        selected({ 'text $a + b$ text' }, 'a + b', function()
+          textobj.math(true)
+        end)
+      )
     end)
 
     it('works for \\( ... \\)', function()
-      T.eq('\\(a + b\\)', selected({ 'text \\(a + b\\) text' }, 'a + b', function()
-        textobj.math(false)
-      end))
+      T.eq(
+        '\\(a + b\\)',
+        selected({ 'text \\(a + b\\) text' }, 'a + b', function()
+          textobj.math(false)
+        end)
+      )
     end)
 
     it('takes the body of a display math block linewise', function()
@@ -125,30 +155,42 @@ describe('textobj', function()
     end)
 
     it('keeps the delimiters of a display math block for a$', function()
-      T.eq('\\[\nx = y\n\\]', selected({ '\\[', 'x = y', '\\]' }, 'x = y', function()
-        textobj.math(false)
-      end))
+      T.eq(
+        '\\[\nx = y\n\\]',
+        selected({ '\\[', 'x = y', '\\]' }, 'x = y', function()
+          textobj.math(false)
+        end)
+      )
     end)
   end)
 
   describe('delimiter', function()
     it('ad takes the braces with it', function()
-      T.eq('{inner}', selected({ '\\textbf{inner}' }, 'inner', function()
-        textobj.delimiter(false)
-      end))
+      T.eq(
+        '{inner}',
+        selected({ '\\textbf{inner}' }, 'inner', function()
+          textobj.delimiter(false)
+        end)
+      )
     end)
 
     it('id leaves them out', function()
-      T.eq('inner', selected({ '\\textbf{inner}' }, 'inner', function()
-        textobj.delimiter(true)
-      end))
+      T.eq(
+        'inner',
+        selected({ '\\textbf{inner}' }, 'inner', function()
+          textobj.delimiter(true)
+        end)
+      )
     end)
 
     it('understands \\left( ... \\right)', function()
       -- Everything between the delimiters, surrounding spaces included.
-      T.eq(' x + y ', selected({ '$\\left( x + y \\right)$' }, 'x + y', function()
-        textobj.delimiter(true)
-      end))
+      T.eq(
+        ' x + y ',
+        selected({ '$\\left( x + y \\right)$' }, 'x + y', function()
+          textobj.delimiter(true)
+        end)
+      )
     end)
   end)
 
@@ -160,9 +202,12 @@ describe('textobj', function()
         '  \\item two',
         '\\end{itemize}',
       }
-      T.matches('one', selected(lines, 'one', function()
-        textobj.item(false)
-      end))
+      T.matches(
+        'one',
+        selected(lines, 'one', function()
+          textobj.item(false)
+        end)
+      )
     end)
   end)
 

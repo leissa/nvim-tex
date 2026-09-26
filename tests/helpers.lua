@@ -119,7 +119,7 @@ function H.cursor_at(needle, bufnr)
       return row, col - 1
     end
   end
-  error(("no %q in the buffer"):format(needle))
+  error(('no %q in the buffer'):format(needle))
 end
 
 ---@param bufnr integer|nil
@@ -162,10 +162,7 @@ function H.selected_text(sel)
   if sel.mode == 'V' then
     return table.concat(vim.api.nvim_buf_get_lines(0, sel.srow - 1, sel.erow, false), '\n')
   end
-  return table.concat(
-    vim.api.nvim_buf_get_text(0, sel.srow - 1, sel.scol, sel.erow - 1, sel.ecol + 1, {}),
-    '\n'
-  )
+  return table.concat(vim.api.nvim_buf_get_text(0, sel.srow - 1, sel.scol, sel.erow - 1, sel.ecol + 1, {}), '\n')
 end
 
 --- A project table as `nvim-tex.project` would build it, without touching a

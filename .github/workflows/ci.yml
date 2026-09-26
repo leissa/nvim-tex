@@ -22,6 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # The oldest supported release, plus the two moving targets.
         neovim: [v0.10.4, stable, nightly]
 
     steps:
@@ -51,6 +52,30 @@ jobs:
           # Fail instead of skipping if the parser did not make it into place.
           NVIM_TEX_REQUIRE_PARSER: "1"
         run: make test
+
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check lua plugin tests
+
+  doc:
+    name: doc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
 
       - name: Generate the help tags
         run: make doc

@@ -71,7 +71,11 @@ local function includes(candidate, target)
   local stem = vim.fn.fnamemodify(target, ':t:r')
   local pattern = '\\%a*[iI]nput{[^}]*' .. vim.pesc(stem)
   for _, line in ipairs(util.readlines(candidate)) do
-    if line:find(pattern) or line:find('\\include{[^}]*' .. vim.pesc(stem)) or line:find('\\subfile{[^}]*' .. vim.pesc(stem)) then
+    if
+      line:find(pattern)
+      or line:find('\\include{[^}]*' .. vim.pesc(stem))
+      or line:find('\\subfile{[^}]*' .. vim.pesc(stem))
+    then
       return true
     end
   end

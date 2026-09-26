@@ -11,10 +11,7 @@ end
 ---@param ctx table
 ---@return string
 local function inverse_search(ctx)
-  return ('%s --server %s --remote-expr "v:lua.NvimTexInverseSearch(%%2, \'%%1\')"'):format(
-    vim.v.progpath,
-    ctx.server
-  )
+  return ('%s --server %s --remote-expr "v:lua.NvimTexInverseSearch(%%2, \'%%1\')"'):format(vim.v.progpath, ctx.server)
 end
 
 ---@param project table

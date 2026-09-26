@@ -27,9 +27,12 @@ describe('toc', function()
     })
     local entries = toc.build(H.project(main))
     T.eq({ 'First', 'One', 'Deeper' }, titles(entries))
-    T.eq({ 1, 2, 3 }, vim.tbl_map(function(entry)
-      return entry.level
-    end, entries))
+    T.eq(
+      { 1, 2, 3 },
+      vim.tbl_map(function(entry)
+        return entry.level
+      end, entries)
+    )
     T.eq(3, entries[1].lnum)
   end)
 
@@ -131,10 +134,7 @@ describe('toc', function()
       local winid = toc.window()
       T.ok(winid)
       -- Entries are rendered with two spaces of indentation per level.
-      T.eq(
-        { '    One', '    Two' },
-        vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(winid), 0, -1, false)
-      )
+      T.eq({ '    One', '    Two' }, vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(winid), 0, -1, false))
 
       toc.toggle(project)
       T.eq(nil, toc.window())

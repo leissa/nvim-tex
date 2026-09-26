@@ -53,7 +53,15 @@ describe('imaps', function()
     end)
 
     it('says so for a function', function()
-      T.eq('<function>', imaps.rhs_label({ lhs = 'x', rhs = function() return 'x' end }))
+      T.eq(
+        '<function>',
+        imaps.rhs_label({
+          lhs = 'x',
+          rhs = function()
+            return 'x'
+          end,
+        })
+      )
     end)
   end)
 
@@ -95,15 +103,30 @@ describe('imaps', function()
 
   describe('wrappers', function()
     it("expands unconditionally for 'trivial'", function()
-      T.eq('x', imaps.wrappers.trivial('`t', function() return 'x' end))
+      T.eq(
+        'x',
+        imaps.wrappers.trivial('`t', function()
+          return 'x'
+        end)
+      )
     end)
 
     it("expands only inside math for 'math'", function()
       H.buf({ 'text $x$ text' })
       H.cursor(1, 6) -- inside the formula
-      T.eq('\\alpha', imaps.wrappers.math('`a', function() return '\\alpha' end))
+      T.eq(
+        '\\alpha',
+        imaps.wrappers.math('`a', function()
+          return '\\alpha'
+        end)
+      )
       H.cursor(1, 1) -- in the prose
-      T.eq('`a', imaps.wrappers.math('`a', function() return '\\alpha' end))
+      T.eq(
+        '`a',
+        imaps.wrappers.math('`a', function()
+          return '\\alpha'
+        end)
+      )
     end)
   end)
 

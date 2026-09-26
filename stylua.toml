@@ -1,0 +1,7 @@
+syntax = "Lua52"
+indent_type = "Spaces"
+indent_width = 2
+column_width = 120
+# nvim-tex was written with single quotes; keep them rather than churn every
+# string literal in the tree.
+quote_style = "AutoPreferSingle"

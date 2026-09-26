@@ -168,8 +168,7 @@ describe('viewer', function()
 
     it('passes line, PDF and source to displayline', function()
       local cmd = skim.spawn_cmd(project, ctx())
-      T.eq({ '-r', '-g', '42', '/docs/thesis.pdf', '/docs/thesis.tex' },
-        { cmd[2], cmd[3], cmd[4], cmd[5], cmd[6] })
+      T.eq({ '-r', '-g', '42', '/docs/thesis.pdf', '/docs/thesis.tex' }, { cmd[2], cmd[3], cmd[4], cmd[5], cmd[6] })
     end)
   end)
 
@@ -191,11 +190,16 @@ describe('viewer', function()
       })
       T.eq({
         'myviewer',
-        '--pdf', '/docs/thesis.pdf',
-        '--tex', '/docs/thesis.tex',
-        '--line', '42',
-        '--col', '7',
-        '--server', '/tmp/nvim.sock',
+        '--pdf',
+        '/docs/thesis.pdf',
+        '--tex',
+        '/docs/thesis.tex',
+        '--line',
+        '42',
+        '--col',
+        '7',
+        '--server',
+        '/tmp/nvim.sock',
       }, general.spawn_cmd(project, ctx()))
     end)
 
@@ -232,7 +236,11 @@ describe('viewer', function()
     end)
 
     it('is true while the handle is alive', function()
-      project.viewer = { handle = { is_closing = function() return false end } }
+      project.viewer = { handle = {
+        is_closing = function()
+          return false
+        end,
+      } }
       T.ok(viewer.is_running(project))
     end)
   end)

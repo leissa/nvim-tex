@@ -195,7 +195,10 @@ function M.start(project, opts)
   emit('CompileStarted', project)
 
   local mode = continuous and 'continuous' or 'single shot'
-  util.info_unless(config.get('compiler', 'silent'), ('compiling %s (%s)'):format(vim.fn.fnamemodify(project.main, ':t'), mode))
+  util.info_unless(
+    config.get('compiler', 'silent'),
+    ('compiling %s (%s)'):format(vim.fn.fnamemodify(project.main, ':t'), mode)
+  )
 end
 
 ---@param project table

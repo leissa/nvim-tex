@@ -173,12 +173,13 @@ right line. okular needs its editor command set once in the GUI — see
 
 `:help nvim-tex`
 
-## Testing
+## Tests
 
 ```sh
-make test                              # the whole suite
-TEST_FILE=tests/qf_spec.lua make test  # one spec file
-make parser                            # build the `latex` parser into .deps
+make test              # the whole suite
+make test SPEC=qf      # one spec file
+make fmt-check         # what CI enforces
+make parser            # build the `latex` parser into .deps
 ```
 
 The suite runs in a headless Neovim against `tests/minimal_init.lua` and

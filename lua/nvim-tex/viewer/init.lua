@@ -171,7 +171,7 @@ function M.reverse_search(project)
     return
   end
   util.info(
-    ("%s performs inverse search itself -- use its own binding (ctrl-click in zathura, shift-click in okular)"):format(
+    ('%s performs inverse search itself -- use its own binding (ctrl-click in zathura, shift-click in okular)'):format(
       project.viewer.backend
     )
   )

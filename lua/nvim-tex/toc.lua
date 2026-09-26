@@ -39,11 +39,7 @@ end
 ---@param text string
 ---@return string
 local function clean(text)
-  return vim.trim(text
-    :gsub('\\%a+%s*{(.-)}', '%1')
-    :gsub('[{}]', '')
-    :gsub('\\%a+%s*', '')
-    :gsub('%s+', ' '))
+  return vim.trim(text:gsub('\\%a+%s*{(.-)}', '%1'):gsub('[{}]', ''):gsub('\\%a+%s*', ''):gsub('%s+', ' '))
 end
 
 --- Resolve an `\input{foo}` path relative to `dir`.

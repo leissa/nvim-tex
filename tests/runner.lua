@@ -18,11 +18,21 @@ local function paint(code, text)
   return ('\27[%sm%s\27[0m'):format(code, text)
 end
 
-local function red(s) return paint('31', s) end
-local function green(s) return paint('32', s) end
-local function yellow(s) return paint('33', s) end
-local function dim(s) return paint('90', s) end
-local function bold(s) return paint('1', s) end
+local function red(s)
+  return paint('31', s)
+end
+local function green(s)
+  return paint('32', s)
+end
+local function yellow(s)
+  return paint('33', s)
+end
+local function dim(s)
+  return paint('90', s)
+end
+local function bold(s)
+  return paint('1', s)
+end
 
 local function out(text)
   io.stdout:write(text)
@@ -58,8 +68,7 @@ T = {}
 ---@param context string|nil
 function T.eq(expected, actual, context)
   if not vim.deep_equal(expected, actual) then
-    fail(('%sexpected %s\n     got %s'):format(
-      context and (context .. ': ') or '', show(expected), show(actual)))
+    fail(('%sexpected %s\n     got %s'):format(context and (context .. ': ') or '', show(expected), show(actual)))
   end
 end
 
@@ -67,8 +76,7 @@ end
 ---@param actual any
 function T.neq(unexpected, actual, context)
   if vim.deep_equal(unexpected, actual) then
-    fail(('%sexpected something other than %s'):format(
-      context and (context .. ': ') or '', show(unexpected)))
+    fail(('%sexpected something other than %s'):format(context and (context .. ': ') or '', show(unexpected)))
   end
 end
 
@@ -77,8 +85,7 @@ end
 ---@param context string|nil
 function T.ok(value, context)
   if not value then
-    fail(('%sexpected a truthy value, got %s'):format(
-      context and (context .. ': ') or '', show(value)))
+    fail(('%sexpected a truthy value, got %s'):format(context and (context .. ': ') or '', show(value)))
   end
 end
 
@@ -87,8 +94,7 @@ end
 ---@param context string|nil
 function T.falsy(value, context)
   if value then
-    fail(('%sexpected a falsy value, got %s'):format(
-      context and (context .. ': ') or '', show(value)))
+    fail(('%sexpected a falsy value, got %s'):format(context and (context .. ': ') or '', show(value)))
   end
 end
 
@@ -250,14 +256,18 @@ function _G.it(name, fn)
   end
 end
 
---- Spec files to run: `$TEST_FILE` if set, every `tests/*_spec.lua` otherwise.
+--- Spec files to run: the basenames in `$SPEC` if it is set -- `SPEC='qf toc'`
+--- selects `tests/qf_spec.lua` and `tests/toc_spec.lua` -- every
+--- `tests/*_spec.lua` otherwise.
 ---@return string[]
 local function spec_files()
-  local single = os.getenv('TEST_FILE')
-  if single and single ~= '' then
-    return vim.split(single, '%s+', { trimempty = true })
-  end
   local root = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':p:h')
+  local selected = os.getenv('SPEC')
+  if selected and selected ~= '' then
+    return vim.tbl_map(function(name)
+      return ('%s/%s_spec.lua'):format(root, name)
+    end, vim.split(selected, '%s+', { trimempty = true }))
+  end
   local found = vim.fn.glob(root .. '/*_spec.lua', false, true)
   table.sort(found)
   return found
@@ -305,7 +315,11 @@ function M.main()
   end
 
   local summary = ('\n%d passed, %d failed, %d skipped  (%.0f ms)\n'):format(
-    state.pass, state.fail, state.skip, elapsed)
+    state.pass,
+    state.fail,
+    state.skip,
+    elapsed
+  )
   out(state.fail > 0 and red(summary) or green(summary))
 
   os.exit(state.fail > 0 and 1 or 0)

@@ -45,9 +45,7 @@ local function inner_of(node)
   -- For `\left( ... \right)` the inner part ends at `\right`, not at the
   -- closing delimiter character.
   local open = node:field('left_delimiter')[1] or node:child(0)
-  local close = node:field('right_command')[1]
-    or node:field('right_delimiter')[1]
-    or node:child(node:child_count() - 1)
+  local close = node:field('right_command')[1] or node:field('right_delimiter')[1] or node:child(node:child_count() - 1)
   if not open or not close or open:id() == close:id() then
     return nil
   end
@@ -304,18 +302,42 @@ end
 
 --- Mapping table: lhs -> function. Used by `nvim-tex.keymaps`.
 M.map = {
-  ['ae'] = function() M.environment(false) end,
-  ['ie'] = function() M.environment(true) end,
-  ['ac'] = function() M.command(false) end,
-  ['ic'] = function() M.command(true) end,
-  ['a$'] = function() M.math(false) end,
-  ['i$'] = function() M.math(true) end,
-  ['ad'] = function() M.delimiter(false) end,
-  ['id'] = function() M.delimiter(true) end,
-  ['am'] = function() M.item(false) end,
-  ['im'] = function() M.item(true) end,
-  ['aP'] = function() M.section(false) end,
-  ['iP'] = function() M.section(true) end,
+  ['ae'] = function()
+    M.environment(false)
+  end,
+  ['ie'] = function()
+    M.environment(true)
+  end,
+  ['ac'] = function()
+    M.command(false)
+  end,
+  ['ic'] = function()
+    M.command(true)
+  end,
+  ['a$'] = function()
+    M.math(false)
+  end,
+  ['i$'] = function()
+    M.math(true)
+  end,
+  ['ad'] = function()
+    M.delimiter(false)
+  end,
+  ['id'] = function()
+    M.delimiter(true)
+  end,
+  ['am'] = function()
+    M.item(false)
+  end,
+  ['im'] = function()
+    M.item(true)
+  end,
+  ['aP'] = function()
+    M.section(false)
+  end,
+  ['iP'] = function()
+    M.section(true)
+  end,
 }
 
 return M

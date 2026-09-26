@@ -109,8 +109,7 @@ end
 ---@param level string
 function M.set_level(level)
   if not LEVEL_RANK[level] then
-    util.error(("unknown qf.level %q, expected one of: %s"):format(
-      tostring(level), table.concat(LEVEL_ORDER, ', ')))
+    util.error(('unknown qf.level %q, expected one of: %s'):format(tostring(level), table.concat(LEVEL_ORDER, ', ')))
     return
   end
   level_override = level
@@ -185,19 +184,19 @@ end
 ---@return boolean
 local function starts_message(line)
   return line:match('^!')
-      or line:match('^%a[^:]*%.%a+:%d+:')
-      or line:match('^%.?/?%a[^:]*:%d+:')
-      or line:match('^Missing character:')
-      or line:match('^LaTeX Warning:')
-      or line:match('^LaTeX Info:')
-      or line:match('^LaTeX Font Warning:')
-      or line:match('^Overfull')
-      or line:match('^Underfull')
-      or line:match('^Package%s+%S+%s+Warning:')
-      or line:match('^Package%s+%S+%s+Info:')
-      or line:match('^Class%s+%S+%s+Warning:')
-      or line:match('^Class%s+%S+%s+Info:')
-      or false
+    or line:match('^%a[^:]*%.%a+:%d+:')
+    or line:match('^%.?/?%a[^:]*:%d+:')
+    or line:match('^Missing character:')
+    or line:match('^LaTeX Warning:')
+    or line:match('^LaTeX Info:')
+    or line:match('^LaTeX Font Warning:')
+    or line:match('^Overfull')
+    or line:match('^Underfull')
+    or line:match('^Package%s+%S+%s+Warning:')
+    or line:match('^Package%s+%S+%s+Info:')
+    or line:match('^Class%s+%S+%s+Warning:')
+    or line:match('^Class%s+%S+%s+Info:')
+    or false
 end
 
 --- Parse a LaTeX `.log` file into quickfix items.
@@ -361,7 +360,7 @@ end
 function M.parse_blg(blgfile, main)
   local items = {}
   for _, line in ipairs(util.readlines(blgfile)) do
-    local message = line:match("^Warning%-%-(.+)$")
+    local message = line:match('^Warning%-%-(.+)$')
     if message then
       local lnum = tonumber(message:match('line (%d+)')) or 0
       local file = message:match('in ([%w%-_%.]+%.bib)')

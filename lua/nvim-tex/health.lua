@@ -53,7 +53,7 @@ function M.check()
   if method == 'auto' then
     local backend = viewer.backend()
     if backend then
-      vim.health.ok(("auto-detected viewer: %s"):format(backend.name))
+      vim.health.ok(('auto-detected viewer: %s'):format(backend.name))
     else
       vim.health.warn('no supported PDF viewer found', {
         'Install zathura, sioyek or okular, or set view.method = "general".',

@@ -93,8 +93,7 @@ end
 ---@param line string
 ---@return boolean
 function M.is_started_line(line)
-  return line:match("^Latexmk: Run number %d+ of rule") ~= nil
-    or line:match('^Latexmk: applying rule') ~= nil
+  return line:match('^Latexmk: Run number %d+ of rule') ~= nil or line:match('^Latexmk: applying rule') ~= nil
 end
 
 --- Did latexmk report a failure on this line?

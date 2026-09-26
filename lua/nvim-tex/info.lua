@@ -58,7 +58,10 @@ local function info_lines(project, full)
   lines[#lines + 1] = ''
   lines[#lines + 1] = 'viewer'
   lines[#lines + 1] = '  method:      ' .. tostring(config.get('view', 'method'))
-  lines[#lines + 1] = '  running:     ' .. (viewer.is_running(project) and (project.viewer.backend .. ' (pid ' .. tostring(project.viewer.pid) .. ')') or 'no')
+  lines[#lines + 1] = '  running:     '
+    .. (
+      viewer.is_running(project) and (project.viewer.backend .. ' (pid ' .. tostring(project.viewer.pid) .. ')') or 'no'
+    )
 
   if full then
     local toc = require('nvim-tex.toc').build(project)

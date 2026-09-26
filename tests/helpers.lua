@@ -36,10 +36,10 @@ end
 --- Is the `latex` tree-sitter parser installed?
 ---@return boolean
 function H.has_parser()
-  -- `language.add` returns `nil, err` rather than raising when the parser is
-  -- nowhere to be found, so the return value has to be looked at.
-  local ok, added = pcall(vim.treesitter.language.add, 'latex')
-  return ok and added == true
+  -- `language.add` cannot be asked: 0.10 returns nothing at all and raises
+  -- when the parser is missing, while 0.11 and later return `true` or
+  -- `nil, err`. Building a parser works the same way everywhere.
+  return (pcall(vim.treesitter.get_string_parser, '', 'latex'))
 end
 
 --- Skip the current test unless the `latex` parser is available. CI sets

@@ -45,7 +45,12 @@ describe('plugin', function()
     it('all carry a description', function()
       local registered = vim.api.nvim_get_commands({})
       for _, name in ipairs(COMMANDS) do
-        T.ok(registered[name] and registered[name].definition ~= '', name)
+        -- Up to Neovim 0.12 the description of a Lua command is reported as
+        -- its `definition`; 0.13 reports it separately as `desc` and leaves
+        -- `definition` empty.
+        local command = registered[name]
+        local description = command and (command.desc or command.definition)
+        T.ok(description ~= nil and description ~= '', name)
       end
     end)
 

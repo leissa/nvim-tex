@@ -27,9 +27,10 @@ CONTENTS                                                    *nvim-tex-contents*
        Folding ............................ |nvim-tex-fold|
        Conceal ............................ |nvim-tex-conceal|
  13. Table of contents .................... |nvim-tex-toc|
- 14. Events ............................... |nvim-tex-events|
- 15. Differences from VimTeX .............. |nvim-tex-vimtex|
- 16. Credits .............................. |nvim-tex-credits|
+ 14. Citations ............................ |nvim-tex-cite|
+ 15. Events ............................... |nvim-tex-events|
+ 16. Differences from VimTeX .............. |nvim-tex-vimtex|
+ 17. Credits .............................. |nvim-tex-credits|
 
 ==============================================================================
 1. INTRODUCTION                                         *nvim-tex-introduction*
@@ -58,6 +59,7 @@ Optional but recommended:
   - A SyncTeX capable PDF viewer: zathura, sioyek, okular or Skim
   - `dbus-send` for forward search into a running zathura
   - `texdoc` for the |K| mapping
+  - `curl` for |:TexCite|
 
 Run `:checkhealth nvim-tex` to see what is available.
 
@@ -154,6 +156,7 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
 `edit.*`                      Toggle maps for |nvim-tex-edit-mappings|.
 `texcount.executable`         `texcount`, as a string or list.
 `texcount.options`            Extra flags for |:TexCountWords|.
+`cite.*`                      See |nvim-tex-cite|.
 `imaps.*`                     Insert mode math mappings. See
                             |nvim-tex-imaps|.
 `mappings.*`                  See |nvim-tex-mappings|.
@@ -213,6 +216,7 @@ here, `<localleader>lc` is `<localleader>c`, and so on.
   <localleader>X      forget all cached project state                `n`
   <localleader>s      toggle the main file                           `n`
   <localleader>a      context menu                                   `n`
+  <localleader>b      search online and cite (|:TexCite|)             `n`
 
                                                      *nvim-tex-context-menu*
 The context menu (`<localleader>a`) acts on whatever is under the cursor: it
@@ -370,6 +374,10 @@ An entry understands these keys:
                         argument the level is cycled. See
                         |nvim-tex-quickfix-levels|.
 :TexLog                 Open the LaTeX `.log` file.
+                                                                    *:TexCite*
+:TexCite [query]        Search DBLP for [query] (asked for when omitted),
+                        add the chosen paper to the bibliography and cite it.
+                        See |nvim-tex-cite|.
                                                                    *:TexImaps*
 :TexImaps               List the insert mode math mappings.
                                            *:TexCountWords* *:TexCountLetters*
@@ -786,7 +794,62 @@ In the TOC window: `<CR>` jumps to the entry, `r` refreshes, `q` closes.
     }
 <
 ==============================================================================
-14. EVENTS                                                    *nvim-tex-events*
+14. CITATIONS                                                   *nvim-tex-cite*
+
+`:TexCite` (or `<localleader>b`) searches DBLP for a paper and cites it:
+
+1. The query comes from the command line (`:TexCite attention need`) or a
+   prompt. Every word has to occur in the title or in an author's name; the
+   last word may be the start of one. Titles that contain the query as a
+   phrase come first, then the newest papers. Names are matched as DBLP
+   spells them: `leißa`, not `leissa`.
+2. The results are offered with |vim.ui.select()|; a picker plugin that
+   replaces it (Telescope, fzf-lua, snacks, ...) takes over.
+3. The key is offered for editing, starting from `leissa2015graph` -- first
+   author, year, first word of the title that says something. A key that is
+   taken gets a letter appended.
+4. The entry is appended to the bibliography and the key is inserted: into
+   the braces of the `\cite`, `\parencite`, `\textcite`, ... it is typed in,
+   joining the keys already there, or as `\cite{key}` anywhere else. In
+   normal mode it goes behind the cursor, or before a `}` under it.
+
+A paper that is already in the bibliography, recognised by its DOI or its
+DBLP record, is cited under its existing key and not added again.
+
+The bibliography is the first file named by `\addbibresource` or
+`\bibliography` in the main file, else the first `.bib` file under the
+project root. A buffer holding it gets the entry; it is written unless it
+has unsaved changes of its own.
+
+To start it from insert mode, right after typing `\cite{`: >lua
+
+    vim.keymap.set('i', '<C-x><C-b>', '<Cmd>TexCite<CR>')
+<
+DBLP's own search and `.bib` export sit behind a JavaScript bot check that
+`curl` cannot pass, so nvim-tex asks DBLP's SPARQL endpoint instead and
+assembles the BibTeX entry itself, following DBLP's export: UTF-8 names,
+`{Braced}` acronyms in titles, `doi`, `url` and, for arXiv papers,
+`eprint`.
+
+>lua
+    cite = {
+      dblp = {
+        enabled = true,
+        endpoint = 'https://sparql.dblp.org/sparql',
+        max_results = 30,
+      },
+      key = 'short',     -- 'short', 'source' (DBLP:conf/...) or
+                         -- function(entry) returning the key
+      edit_key = true,   -- offer the key for editing
+      curl = 'curl',
+      timeout = 20,      -- seconds per request
+    }
+<
+A `key` function gets the entry as a table with `authors`, `editors`,
+`year`, `title`, `type`, `doi` and `source_key`.
+
+==============================================================================
+15. EVENTS                                                    *nvim-tex-events*
 
 The plugin fires |User| autocmds. The `data` table carries `main`, `root` and
 `status`; look the project up with
@@ -809,7 +872,7 @@ Example: >lua
     })
 <
 ==============================================================================
-15. DIFFERENCES FROM VIMTEX                                   *nvim-tex-vimtex*
+16. DIFFERENCES FROM VIMTEX                                   *nvim-tex-vimtex*
 
 nvim-tex is not a fork; it reimplements the parts of VimTeX that are worth
 keeping, and drops the rest.
@@ -831,7 +894,7 @@ Done differently:
     syntax rules. See |nvim-tex-conceal|.
 
 ==============================================================================
-16. CREDITS                                                  *nvim-tex-credits*
+17. CREDITS                                                  *nvim-tex-credits*
 
 The interface -- the mapping set, the text objects, the way the compiler and
 viewer are driven -- is taken from VimTeX by Karl Yngve Lervåg, which has been

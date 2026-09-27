@@ -237,6 +237,26 @@ M.defaults = {
     options = {},
   },
 
+  --- `:TexCite`: search online, add the entry to the bibliography, cite it.
+  cite = {
+    --- DBLP, searched through its SPARQL endpoint.
+    dblp = {
+      enabled = true,
+      endpoint = 'https://sparql.dblp.org/sparql',
+      max_results = 30,
+    },
+    --- Key of a new entry: 'short' for `leissa2015graph`, 'source' for the
+    --- source's own (`DBLP:conf/cgo/LeissaKH15`), or a function(entry)
+    --- returning one.
+    key = 'short',
+    --- Offer the key for editing before the entry is added.
+    edit_key = true,
+    --- Downloads go through curl, as a string or list.
+    curl = 'curl',
+    --- Seconds per request.
+    timeout = 20,
+  },
+
   --- LaTeX-aware indentation through `indentexpr`. Needs the `latex` parser.
   indent = {
     enabled = true,

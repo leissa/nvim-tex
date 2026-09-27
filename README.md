@@ -36,7 +36,7 @@ in CI on Neovim 0.10, stable and nightly.
 
 Optional: `texlab`, a SyncTeX-capable viewer (zathura, sioyek, okular, Skim),
 `dbus-send` for zathura forward search, `texdoc` for `K`, `texcount` for
-`:TexCountWords`.
+`:TexCountWords`, `curl` for `:TexCite`.
 
 `:checkhealth nvim-tex` reports what is missing.
 
@@ -139,6 +139,7 @@ already buffer-local, so the extra `l` is redundant. VimTeX's
 | `<localleader>i` | project info — `I` full                   |
 | `<localleader>g` | status — `G` for all projects             |
 | `<localleader>a` | context menu (citation, ref, include)     |
+| `<localleader>b` | search DBLP and cite (`:TexCite`)         |
 | `<localleader>s` | toggle the main file                      |
 | `<localleader>L` | compile the selection as a standalone doc |
 | `<localleader>x` | reload — `X` clears project state         |
@@ -194,6 +195,13 @@ require('nvim-tex.imaps').add({ lhs = 'oo', rhs = '\\circ' })
 `:TexCountWords` counts the words of the whole document, includes and all,
 through `texcount`; given a range it counts only that, and `!` shows the full
 per-file report. `:TexCountLetters` does the same for letters.
+
+`:TexCite [query]` searches [DBLP](https://dblp.org) for a paper, lets you
+pick one and edit its key (`leissa2015graph` by default), appends the BibTeX
+entry to the first bibliography the main file names, and inserts the key:
+into the `\cite{…}` you are typing, or as a new `\cite{…}`. A paper that is
+already in the bibliography is cited under its existing key. Needs `curl`;
+see `:help nvim-tex-cite`.
 
 Every mapping has a command behind it (`:TexCompile`, `:TexView`, `:TexToc`,
 …), so a different layout is just a matter of mapping those instead. Groups

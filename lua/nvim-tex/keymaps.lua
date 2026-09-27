@@ -4,6 +4,7 @@
 --- buffer-local, so the extra `l` layer vimtex uses is dropped.
 --- `<localleader>ll` becomes `<localleader>l`, `<localleader>lc` becomes
 --- `<localleader>c`, and so on.
+local cite = require('nvim-tex.cite')
 local compiler = require('nvim-tex.compiler')
 local config = require('nvim-tex.config')
 local imaps = require('nvim-tex.imaps')
@@ -136,6 +137,9 @@ local function leader_maps(map, prefix)
   map('n', prefix .. 'a', function()
     info.context_menu(project())
   end, 'context menu')
+  map('n', prefix .. 'b', function()
+    cite.cite(project())
+  end, 'search online and cite')
 end
 
 --- Environment / command / delimiter editing, and the insert mode helpers.

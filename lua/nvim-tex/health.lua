@@ -69,6 +69,8 @@ function M.check()
     false
   )
 
+  check_executable(util.as_cmd(config.get('cite', 'curl'))[1], 'Only :TexCite needs it.', false)
+
   vim.health.start('nvim-tex: viewer')
   local method = config.get('view', 'method')
   local viewer = require('nvim-tex.viewer')

@@ -1,4 +1,5 @@
 --- User commands. Every command acts on the project of the current buffer.
+local cite = require('nvim-tex.cite')
 local compiler = require('nvim-tex.compiler')
 local imaps = require('nvim-tex.imaps')
 local info = require('nvim-tex.info')
@@ -184,6 +185,13 @@ local COMMANDS = {
     'TexCountLetters',
     count(true),
     { bang = true, range = true, desc = 'Count the letters of the document or range (! for a report)' },
+  },
+  {
+    'TexCite',
+    function(opts)
+      cite.cite(project(), opts.args)
+    end,
+    { nargs = '*', desc = 'Search online for a paper, add it to the bibliography and cite it' },
   },
   {
     'TexImaps',

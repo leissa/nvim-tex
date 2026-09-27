@@ -4,6 +4,7 @@ local nvim_tex = require('nvim-tex')
 
 --- Every command `nvim-tex.commands` is meant to register.
 local COMMANDS = {
+  'TexCite',
   'TexClean',
   'TexCompile',
   'TexCompileOutput',

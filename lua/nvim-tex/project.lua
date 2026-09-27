@@ -52,11 +52,15 @@ local function directive_lines(bufnr)
   return vim.list_extend(head, tail)
 end
 
----@param path string
+--- A document root is what holds the `\\begin{document}`. Its `\\documentclass`
+--- may well come from a shared preamble that is `\\input` by several
+--- documents -- and that preamble cannot be compiled on its own.
+---@param lines string[]
 ---@return boolean
-local function has_documentclass(path)
-  for _, line in ipairs(util.readlines(path)) do
-    if line:match('^%s*\\documentclass') or line:match('^%s*\\documentstyle') then
+local function is_root(lines)
+  for _, line in ipairs(lines) do
+    local code = line:gsub('^(.-)%%.*$', '%1')
+    if code:find('\\begin%s*{document}') then
       return true
     end
   end
@@ -93,7 +97,7 @@ local function search_upwards(dir, target)
     -- Prefer a root that actually references us, fall back to any root.
     local fallback = nil
     for _, candidate in ipairs(candidates) do
-      if has_documentclass(candidate) then
+      if util.normalize(candidate) ~= target and is_root(util.readlines(candidate)) then
         if includes(candidate, target) then
           return util.normalize(candidate)
         end
@@ -117,6 +121,28 @@ local function search_upwards(dir, target)
     current = parent
   end
   return nil
+end
+
+--- The main file of a known project that pulls in `file`. The project of the
+--- alternate buffer wins, as that is usually where `file` was opened from.
+---@param file string
+---@return string|nil
+local function open_project_including(file)
+  local mains = {}
+  for main in pairs(M.projects) do
+    if main ~= file and includes(main, file) then
+      mains[#mains + 1] = main
+    end
+  end
+  if #mains == 0 then
+    return nil
+  end
+  local alt = buf_main[vim.fn.bufnr('#')]
+  if alt and vim.tbl_contains(mains, alt) then
+    return alt
+  end
+  table.sort(mains)
+  return mains[1]
 end
 
 --- Resolve the main file for `bufnr`.
@@ -153,14 +179,18 @@ function M.detect_main(bufnr)
   end
 
   -- 4. The buffer itself is a document root.
-  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  for _, line in ipairs(lines) do
-    if line:match('^%s*\\documentclass') or line:match('^%s*\\documentstyle') then
-      return file
-    end
+  if is_root(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) then
+    return file
   end
 
-  -- 5. Look for a root in this and the parent directories.
+  -- 5. An already open project that includes this file, e.g. the document a
+  -- shared header was opened from.
+  local open = file ~= '' and open_project_including(file) or nil
+  if open then
+    return open
+  end
+
+  -- 6. Look for a root in this and the parent directories.
   local found = file ~= '' and search_upwards(vim.fs.dirname(file), file) or nil
   return found or file
 end

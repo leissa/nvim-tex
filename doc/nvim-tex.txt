@@ -421,11 +421,15 @@ you happen to be editing. It is found by the first rule that applies:
   1. The buffer variable `b:tex_main`.
   2. The `main_file` option.
   3. A `% !TEX root = ...` directive in the first or last five lines.
-  4. The buffer itself, if it has a `\documentclass`.
-  5. A `*.tex` file with a `\documentclass` in this or a parent directory,
-     preferring one that `\input`s the current file. `*.latexmain` marker
-     files are honoured as well.
-  6. The current buffer, as a last resort.
+  4. The buffer itself, if it has a `\begin{document}`. A shared preamble
+     with the `\documentclass` but no document body is not a root.
+  5. The main file of an already open project that `\input`s the current
+     file, preferring the one of the alternate buffer. Opening a shared
+     `header.tex` from `exam.tex` thus keeps `exam.tex` as the main file.
+  6. A `*.tex` file with a `\begin{document}` in this or a parent directory,
+     preferring one that `\input`s the current file.
+     `*.latexmain` marker files are honoured as well.
+  7. The current buffer, as a last resort.
 
 `:TexToggleMain` (`<localleader>s`) switches between the detected main file
 and the current buffer, which is handy while working on a single chapter.

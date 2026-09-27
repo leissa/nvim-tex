@@ -8,7 +8,7 @@ describe('project', function()
   describe('detect_main', function()
     it('honours b:tex_main above everything else', function()
       local dir = H.tmpdir()
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/chapter.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/chapter.tex' })
       vim.api.nvim_buf_set_var(bufnr, 'tex_main', dir .. '/elsewhere.tex')
       T.eq(dir .. '/elsewhere.tex', project_mod.detect_main(bufnr))
     end)
@@ -75,10 +75,38 @@ describe('project', function()
 
     it('prefers the root that references the file over any other root', function()
       local dir = H.tmpdir()
-      H.write(dir .. '/other.tex', { '\\documentclass{article}' })
-      H.write(dir .. '/real.tex', { '\\documentclass{book}', '\\include{intro}' })
+      H.write(dir .. '/other.tex', { '\\documentclass{article}', '\\begin{document}' })
+      H.write(dir .. '/real.tex', {
+        '\\documentclass{book}',
+        '\\begin{document}',
+        '\\include{intro}',
+      })
       local bufnr = H.buf({ 'Some prose.' }, { name = dir .. '/intro.tex' })
       T.eq(dir .. '/real.tex', project_mod.detect_main(bufnr))
+    end)
+
+    it('does not take a shared preamble for a root', function()
+      local dir = H.tmpdir()
+      H.write(dir .. '/sheet.tex', {
+        '\\input{header}',
+        '\\begin{document}',
+        '\\end{document}',
+      })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\usepackage{amsmath}' }, {
+        name = dir .. '/header.tex',
+      })
+      T.eq(dir .. '/sheet.tex', project_mod.detect_main(bufnr))
+    end)
+
+    it('prefers the open project that includes the file', function()
+      local dir = H.tmpdir()
+      H.write(dir .. '/header.tex', { '\\documentclass{article}' })
+      H.write(dir .. '/sheet.tex', { '\\input{header}', '\\begin{document}' })
+      local exam = { '\\input{header}', '\\begin{document}' }
+      H.write(dir .. '/exam.tex', exam)
+      project_mod.get(H.buf(exam, { name = dir .. '/exam.tex' }))
+      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/header.tex' })
+      T.eq(dir .. '/exam.tex', project_mod.detect_main(bufnr))
     end)
 
     it('falls back to the buffer itself when no root is anywhere', function()
@@ -91,7 +119,7 @@ describe('project', function()
   describe('get', function()
     it('derives root, name and directories from the main file', function()
       local dir = H.tmpdir()
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/thesis.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/thesis.tex' })
       local project = project_mod.get(bufnr)
       T.eq(dir .. '/thesis.tex', project.main)
       T.eq(dir, project.root)
@@ -103,7 +131,7 @@ describe('project', function()
     it('resolves a relative out_dir against the main file', function()
       local dir = H.tmpdir()
       config.setup({ compiler = { latexmk = { out_dir = 'build' } } })
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/thesis.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/thesis.tex' })
       local project = project_mod.get(bufnr)
       T.eq(dir .. '/build', project.out_dir)
       T.ok(project.out_dir_set)
@@ -112,7 +140,7 @@ describe('project', function()
     it('looks for the log in out_dir when no aux_dir is set, as latexmk writes it', function()
       local dir = H.tmpdir()
       config.setup({ compiler = { latexmk = { out_dir = 'build' } } })
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/thesis.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/thesis.tex' })
       local project = project_mod.get(bufnr)
       T.eq(dir .. '/build', project.aux_dir)
       T.falsy(project.aux_dir_set)
@@ -122,7 +150,7 @@ describe('project', function()
     it('keeps a separate aux_dir', function()
       local dir = H.tmpdir()
       config.setup({ compiler = { latexmk = { out_dir = 'build', aux_dir = 'aux' } } })
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/thesis.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/thesis.tex' })
       local project = project_mod.get(bufnr)
       T.eq(dir .. '/aux', project.aux_dir)
       T.ok(project.aux_dir_set)
@@ -130,7 +158,7 @@ describe('project', function()
 
     it('picks up the % !TeX program directive', function()
       local dir = H.tmpdir()
-      local bufnr = H.buf({ '% !TeX program = lualatex', '\\documentclass{article}' }, {
+      local bufnr = H.buf({ '% !TeX program = lualatex', '\\documentclass{article}', '\\begin{document}' }, {
         name = dir .. '/thesis.tex',
       })
       T.eq('lualatex', project_mod.get(bufnr).tex_program)
@@ -140,6 +168,7 @@ describe('project', function()
       local dir = H.tmpdir()
       H.write(dir .. '/main.tex', {
         '\\documentclass{book}',
+        '\\begin{document}',
         '\\input{intro}',
         '\\input{outro}',
       })
@@ -151,7 +180,7 @@ describe('project', function()
 
     it('redetects after invalidate', function()
       local dir = H.tmpdir()
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/a.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/a.tex' })
       T.eq(dir .. '/a.tex', project_mod.get(bufnr).main)
 
       vim.api.nvim_buf_set_var(bufnr, 'tex_main', dir .. '/b.tex')
@@ -162,7 +191,7 @@ describe('project', function()
 
     it('forgets a project entirely', function()
       local dir = H.tmpdir()
-      local bufnr = H.buf({ '\\documentclass{article}' }, { name = dir .. '/a.tex' })
+      local bufnr = H.buf({ '\\documentclass{article}', '\\begin{document}' }, { name = dir .. '/a.tex' })
       local project = project_mod.get(bufnr)
       project_mod.forget(project)
       T.eq(nil, project_mod.projects[project.main])

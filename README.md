@@ -212,8 +212,9 @@ can be disabled individually via `mappings.motions`, `mappings.text_objects`,
 
 Compilation always runs on the project's main file, never on the buffer you
 happen to be in. It is found from `b:tex_main`, the `main_file` option, a
-`% !TEX root = …` directive, a `\documentclass` in the buffer, or by searching
-this and the parent directories. `<localleader>s` toggles between the detected
+`% !TEX root = …` directive, a `\begin{document}` in the buffer, an open
+document that `\input`s the buffer, or by searching this and the parent
+directories. `<localleader>s` toggles between the detected
 main file and the current buffer.
 
 ## Indentation

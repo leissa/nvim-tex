@@ -757,7 +757,7 @@ function M.delim_close()
       local rest = line:sub(i)
       local name = rest:match('^\\begin%s*{([^}]*)}')
       if name then
-        stack[#stack + 1] = { kind = 'env', name = name }
+        stack[#stack + 1] = { kind = 'env', name = name, indent = line_at(r):match('^%s*') }
         i = i + #rest:match('^(\\begin%s*{[^}]*})')
         goto continue
       end
@@ -807,9 +807,18 @@ function M.delim_close()
   local matching = { ['('] = ')', ['['] = ']', ['{'] = '}', ['.'] = '.' }
 
   if top.kind == 'env' then
-    local indent = line_at(row):match('^%s*') or ''
-    vim.api.nvim_buf_set_lines(0, row, row, false, { indent .. '\\end{' .. top.name .. '}' })
-    vim.api.nvim_win_set_cursor(0, { row, col })
+    -- `\end` goes at the cursor, on a line of its own and aligned with its
+    -- `\begin`. Text before the cursor stays on the current line.
+    local line = line_at(row)
+    local before, after = line:sub(1, col), line:sub(col + 1)
+    local closing = top.indent .. '\\end{' .. top.name .. '}'
+    if before:match('^%s*$') then
+      vim.api.nvim_buf_set_lines(0, row - 1, row, false, { closing .. after })
+      vim.api.nvim_win_set_cursor(0, { row, #closing })
+    else
+      vim.api.nvim_buf_set_lines(0, row - 1, row, false, { before, closing .. after })
+      vim.api.nvim_win_set_cursor(0, { row + 1, #closing })
+    end
   elseif top.kind == 'left' then
     local closer = matching[top.name] or top.name
     vim.api.nvim_buf_set_text(0, row - 1, col, row - 1, col, { '\\right' .. closer })

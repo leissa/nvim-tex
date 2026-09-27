@@ -292,3 +292,7 @@ viewer are driven — is taken from
 [VimTeX](https://github.com/lervag/vimtex) by Karl Yngve Lervåg, which has
 been the reference LaTeX plugin for Vim and Neovim for years. nvim-tex shares
 no code with it, but owes it the design.
+
+## License
+
+[MIT](LICENSE)

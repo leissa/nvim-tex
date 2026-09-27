@@ -10,6 +10,8 @@ local COMMANDS = {
   'TexCompileSS',
   'TexCompileSelected',
   'TexContextMenu',
+  'TexCountLetters',
+  'TexCountWords',
   'TexDocPackage',
   'TexEnvSurround',
   'TexErrors',
@@ -33,6 +35,66 @@ local COMMANDS = {
 
 describe('plugin', function()
   after_each(H.cleanup)
+
+  describe('highlighting', function()
+    before_each(H.need_parser)
+
+    it('keeps the regex syntax when there is no highlight query', function()
+      local get = vim.treesitter.query.get
+      vim.treesitter.query.get = function(lang, name)
+        if name == 'highlights' then
+          return nil
+        end
+        return get(lang, name)
+      end
+      local ok, err = pcall(function()
+        local bufnr = H.buf({ '\\section{A}' })
+        nvim_tex.attach(bufnr)
+        T.falsy(vim.treesitter.highlighter.active[bufnr])
+        T.eq('tex', vim.bo[bufnr].syntax)
+      end)
+      vim.treesitter.query.get = get
+      assert(ok, err)
+    end)
+
+    it('starts tree-sitter highlighting when there is one', function()
+      local get = vim.treesitter.query.get
+      vim.treesitter.query.get = function(lang, name)
+        if name == 'highlights' then
+          return vim.treesitter.query.parse('latex', '(word) @spell')
+        end
+        return get(lang, name)
+      end
+      local ok, err = pcall(function()
+        local bufnr = H.buf({ '\\section{A}' })
+        nvim_tex.attach(bufnr)
+        T.ok(vim.treesitter.highlighter.active[bufnr])
+        vim.treesitter.stop(bufnr)
+      end)
+      vim.treesitter.query.get = get
+      assert(ok, err)
+    end)
+  end)
+
+  describe('g:tex_conceal', function()
+    after_each(function()
+      vim.g.tex_conceal = nil
+    end)
+
+    it('is emptied while nvim-tex conceals, and restored when it stops', function()
+      vim.g.tex_conceal = nil
+      nvim_tex.setup({})
+      T.eq('', vim.g.tex_conceal)
+      nvim_tex.setup({ conceal = { enabled = false } })
+      T.eq(nil, vim.g.tex_conceal)
+    end)
+
+    it('is left alone when you set it', function()
+      vim.g.tex_conceal = 'abdmg'
+      nvim_tex.setup({})
+      T.eq('abdmg', vim.g.tex_conceal)
+    end)
+  end)
 
   describe('commands', function()
     it('are all registered by the bootstrap', function()

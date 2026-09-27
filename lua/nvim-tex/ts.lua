@@ -83,6 +83,20 @@ M.GROUP = {
 
 M.COMMENT = { line_comment = true, comment_environment = true }
 
+--- Environments whose body is not LaTeX but code or verbatim text, parsed as
+--- one opaque node. `comment_environment` is left to `M.COMMENT`.
+M.VERBATIM = {
+  verbatim_environment = true,
+  listing_environment = true,
+  minted_environment = true,
+  pycode_environment = true,
+  luacode_environment = true,
+  sagesilent_environment = true,
+  sageblock_environment = true,
+  asy_environment = true,
+  asydef_environment = true,
+}
+
 M.ITEM = { enum_item = true }
 
 local warned = {}
@@ -212,15 +226,67 @@ function M.env_name(node, bufnr)
     return nil
   end
   local begin_node = M.env_parts(node)
-  if not begin_node then
+  return begin_node and M.marker_name(begin_node, bufnr) or nil
+end
+
+--- The name in a `begin` or `end` node. Unlike `M.env_name` this also works
+--- for a `\begin` whose environment is still being typed and sits in an
+--- ERROR node.
+---@param marker TSNode
+---@param bufnr integer|string|nil
+---@return string|nil
+function M.marker_name(marker, bufnr)
+  local group = M.child_of_type(marker, 'curly_group_text')
+  if not group then
     return nil
   end
-  for child in begin_node:iter_children() do
-    if child:type():match('^curly_group_text') then
-      return vim.trim(vim.treesitter.get_node_text(child, bufnr or 0):gsub('[{}]', ''))
+  return vim.trim((vim.treesitter.get_node_text(group, bufnr or 0):gsub('[{}]', '')))
+end
+
+--- `figure*` -> `figure`.
+---@param name string|nil
+---@return string|nil
+function M.unstarred(name)
+  return name and (name:gsub('%*$', ''))
+end
+
+--- The first child of `node` of type `t`.
+---@param node TSNode
+---@param t string
+---@return TSNode|nil
+function M.child_of_type(node, t)
+  for child in node:iter_children() do
+    if child:type() == t then
+      return child
     end
   end
   return nil
+end
+
+--- Options for `query.add_predicate` / `add_directive`: replace an earlier
+--- registration, and hand over every node of a capture (0.10 needs asking).
+M.HANDLER_OPTS = { force = true, all = true }
+
+--- The node captured as `id` in a predicate or directive's `match`. With
+--- `all = true` that is a list of nodes; the last one is what we want.
+---@param match table
+---@param id integer
+---@return TSNode|nil
+function M.captured(match, id)
+  local node = match[id]
+  if type(node) == 'table' then
+    node = node[#node]
+  end
+  return node
+end
+
+--- Set the range a directive reports for capture `id`.
+---@param metadata table
+---@param id integer
+---@param range integer[]
+function M.set_range(metadata, id, range)
+  metadata[id] = metadata[id] or {}
+  metadata[id].range = range
 end
 
 --- Is this node a LaTeX command (but not a sectioning command)?

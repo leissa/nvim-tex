@@ -5,6 +5,7 @@ local info = require('nvim-tex.info')
 local project_mod = require('nvim-tex.project')
 local qf = require('nvim-tex.qf')
 local surround = require('nvim-tex.surround')
+local texcount = require('nvim-tex.texcount')
 local toc = require('nvim-tex.toc')
 local viewer = require('nvim-tex.viewer')
 
@@ -20,6 +21,19 @@ end
 ---@return string[]
 local function lines_in_range(first, last)
   return vim.api.nvim_buf_get_lines(0, first - 1, last, false)
+end
+
+--- `:TexCountWords` / `:TexCountLetters`.
+---@param letters boolean
+---@return function
+local function count(letters)
+  return function(opts)
+    texcount.count(project(), {
+      letters = letters,
+      detailed = opts.bang,
+      lines = opts.range > 0 and lines_in_range(opts.line1, opts.line2) or nil,
+    })
+  end
 end
 
 --- All commands, as `{ name, fn, opts }`.
@@ -160,6 +174,16 @@ local COMMANDS = {
       toc.toggle(project())
     end,
     { desc = 'Toggle the table of contents' },
+  },
+  {
+    'TexCountWords',
+    count(false),
+    { bang = true, range = true, desc = 'Count the words of the document or range (! for a report)' },
+  },
+  {
+    'TexCountLetters',
+    count(true),
+    { bang = true, range = true, desc = 'Count the letters of the document or range (! for a report)' },
   },
   {
     'TexImaps',

@@ -4,7 +4,10 @@
 local config = require('nvim-tex.config')
 local util = require('nvim-tex.util')
 
-local M = { name = 'latexmk' }
+local M = {
+  name = 'latexmk',
+  install_hint = 'latexmk ships with TeX Live and MiKTeX.',
+}
 
 ---@param project table
 ---@return string[]

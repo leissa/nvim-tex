@@ -27,6 +27,13 @@ local function buffer_options(bufnr)
   end)
 end
 
+--- Is there a `highlights` query for the `latex` parser?
+---@return boolean
+function M.has_highlights()
+  local ok, query = pcall(vim.treesitter.query.get, 'latex', 'highlights')
+  return ok and query ~= nil
+end
+
 ---@param bufnr integer
 local function treesitter_setup(bufnr)
   local opts = config.get('treesitter')
@@ -39,14 +46,21 @@ local function treesitter_setup(bufnr)
     return
   end
 
-  if opts.highlight then
+  -- Neovim ships no highlight query for LaTeX; nvim-treesitter does. Starting
+  -- the highlighter without one would turn the regex syntax off and leave the
+  -- buffer with no highlighting at all, so `syntax/tex.vim` stays in charge
+  -- then.
+  if opts.highlight and M.has_highlights() then
     pcall(vim.treesitter.start, bufnr, 'latex')
   end
-  if opts.fold then
-    vim.api.nvim_buf_call(bufnr, function()
-      vim.opt_local.foldmethod = 'expr'
-      vim.opt_local.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-    end)
+  if config.get('conceal', 'enabled') then
+    require('nvim-tex.conceal').attach(bufnr)
+  end
+  if config.get('indent', 'enabled') then
+    require('nvim-tex.indent').attach(bufnr)
+  end
+  if config.get('fold', 'enabled') then
+    require('nvim-tex.fold').attach(bufnr)
   end
 end
 
@@ -100,6 +114,33 @@ function M.attach(bufnr)
   vim.api.nvim_exec_autocmds('User', { pattern = 'NvimTexAttach', data = { bufnr = bufnr } })
 end
 
+--- Neovim maps the `tex` filetype to a `tex` language of its own; the
+--- mapping to the `latex` parser is otherwise left to nvim-treesitter.
+--- Everything that asks for "the" parser of a buffer -- `foldexpr` among
+--- them -- needs it. Global, but `filetypes` can change in `setup`.
+local function register_language()
+  vim.treesitter.language.register('latex', config.get('filetypes'))
+end
+
+--- Did nvim-tex set `g:tex_conceal`?
+local set_tex_conceal = false
+
+--- `syntax/tex.vim` conceals on its own, and on top of nvim-tex's conceal it
+--- garbles the text: `x_{12}` comes out as x₁₁₂. Its conceal is switched off
+--- while nvim-tex's is on, unless `g:tex_conceal` was set by you. It is read
+--- when the syntax is loaded, so this has to happen before any buffer is.
+local function regex_conceal()
+  if config.get('conceal', 'enabled') then
+    if vim.g.tex_conceal == nil then
+      vim.g.tex_conceal = ''
+      set_tex_conceal = true
+    end
+  elseif set_tex_conceal then
+    vim.g.tex_conceal = nil
+    set_tex_conceal = false
+  end
+end
+
 --- Register commands and the FileType hook. Safe to call repeatedly.
 function M.init()
   if initialised then
@@ -107,6 +148,9 @@ function M.init()
   end
   initialised = true
 
+  regex_conceal()
+  register_language()
+  require('nvim-tex.injections').register()
   require('nvim-tex.commands').setup()
 
   vim.api.nvim_create_autocmd('FileType', {
@@ -140,6 +184,8 @@ end
 function M.setup(opts)
   config.setup(opts)
   M.init()
+  regex_conceal()
+  register_language()
 
   -- Re-attach buffers that were already open when `setup` ran.
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do

@@ -30,6 +30,11 @@ function M.check()
   local ok, parsers = pcall(vim.treesitter.language.add, 'latex')
   if ok and parsers ~= false then
     vim.health.ok("the 'latex' parser is installed")
+    if require('nvim-tex').has_highlights() then
+      vim.health.ok('a LaTeX highlight query is available; tree-sitter highlights')
+    else
+      vim.health.info('no LaTeX highlight query (nvim-treesitter provides one); syntax/tex.vim highlights')
+    end
   else
     vim.health.error("the 'latex' parser is missing", {
       'Install it with :TSInstall latex, or with your parser manager of choice.',
@@ -44,8 +49,25 @@ function M.check()
   end
 
   vim.health.start('nvim-tex: compiler')
-  local latexmk = config.get('compiler', 'latexmk', 'executable')
-  check_executable(type(latexmk) == 'table' and latexmk[1] or latexmk, 'latexmk ships with TeX Live and MiKTeX.', true)
+  local compiler_method = config.get('compiler', 'method')
+  local backends = require('nvim-tex.compiler').backends
+  local backend = backends[compiler_method]
+  if not backend then
+    local names = vim.tbl_keys(backends)
+    table.sort(names)
+    vim.health.error(
+      ("unknown compiler method '%s'"):format(tostring(compiler_method)),
+      { 'Use one of: ' .. table.concat(names, ', ') }
+    )
+  else
+    check_executable(util.as_cmd(config.compiler_options().executable)[1], backend.install_hint, true)
+  end
+
+  check_executable(
+    util.as_cmd(config.get('texcount', 'executable'))[1],
+    'texcount ships with TeX Live and MiKTeX; only :TexCountWords needs it.',
+    false
+  )
 
   vim.health.start('nvim-tex: viewer')
   local method = config.get('view', 'method')

@@ -11,6 +11,7 @@ local M = {}
 
 M.backends = {
   latexmk = require('nvim-tex.compiler.latexmk'),
+  tectonic = require('nvim-tex.compiler.tectonic'),
 }
 
 ---@return table|nil
@@ -66,7 +67,7 @@ end
 --- Report the result of one compilation run.
 ---@param project table
 ---@param code integer|nil exit code, nil when running continuously
----@param saw_failure boolean|nil latexmk reported an error in its output
+---@param saw_failure boolean|nil the backend reported an error in its output
 local function finish_run(project, code, saw_failure)
   local errors, warnings = qf.update(project, { silent = true })
   local silent = config.get('compiler', 'silent')
@@ -105,10 +106,15 @@ function M.start(project, opts)
     return
   end
 
-  local latexmk = config.get('compiler', 'latexmk')
+  local options = config.compiler_options()
   local continuous = opts.continuous
   if continuous == nil then
-    continuous = latexmk.continuous
+    continuous = options.continuous
+  end
+  -- Continuous mode needs the backend to say when a cycle is over; one that
+  -- cannot, like tectonic, only ever runs single shot.
+  if not backend.is_finished_line then
+    continuous = false
   end
 
   local cmd = backend.build_cmd(project, vim.tbl_extend('force', opts, { continuous = continuous }))
@@ -128,7 +134,7 @@ function M.start(project, opts)
   }
 
   local state = {}
-  local hooks = latexmk.hooks or {}
+  local hooks = options.hooks or {}
 
   local function on_line(line)
     project.output[#project.output + 1] = line
@@ -304,11 +310,28 @@ function M.clean(project, full)
   if not backend then
     return
   end
+  local done = full and 'cleaned all output files' or 'cleaned auxiliary files'
+
+  if not backend.clean_cmd then
+    local failed = {}
+    for _, file in ipairs(backend.clean_files(project, full)) do
+      if vim.fn.delete(file) ~= 0 then
+        failed[#failed + 1] = vim.fn.fnamemodify(file, ':~:.')
+      end
+    end
+    if #failed > 0 then
+      util.error('could not remove ' .. table.concat(failed, ', '))
+    else
+      util.info(done)
+    end
+    return
+  end
+
   local cmd = backend.clean_cmd(project, full)
   vim.system(cmd, { cwd = project.root, text = true }, function(result)
     vim.schedule(function()
       if result.code == 0 then
-        util.info(full and 'cleaned all output files' or 'cleaned auxiliary files')
+        util.info(done)
       else
         util.error('clean failed: ' .. (result.stderr or ''):gsub('%s+$', ''))
       end

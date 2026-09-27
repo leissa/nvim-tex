@@ -169,7 +169,7 @@ end
 ---@param bufnr integer
 ---@return table
 local function new_project(main, bufnr)
-  local latexmk = config.get('compiler', 'latexmk')
+  local backend = config.compiler_options()
   local project = {
     main = main,
     root = vim.fs.dirname(main),
@@ -205,10 +205,15 @@ local function new_project(main, bufnr)
   -- `$VIMTEX_OUTPUT_DIRECTORY` is respected for drop-in compatibility with
   -- existing setups and with latexmk wrappers that already export it.
   local env_out = vim.env.VIMTEX_OUTPUT_DIRECTORY or vim.env.NVIM_TEX_OUTPUT_DIRECTORY
-  project.out_dir = env_out and util.normalize(env_out) or directory(latexmk.out_dir)
-  project.aux_dir = env_out and util.normalize(env_out) or directory(latexmk.aux_dir)
-  project.aux_dir_set = env_out ~= nil or (util.resolve(latexmk.aux_dir, file_info) or '') ~= ''
-  project.out_dir_set = env_out ~= nil or (util.resolve(latexmk.out_dir, file_info) or '') ~= ''
+  local out_set = env_out ~= nil or (util.resolve(backend.out_dir, file_info) or '') ~= ''
+  local aux_set = env_out ~= nil or (util.resolve(backend.aux_dir, file_info) or '') ~= ''
+  project.out_dir = env_out and util.normalize(env_out) or directory(backend.out_dir)
+  project.out_dir_set = out_set
+  -- Without an aux directory of its own the log is written next to the PDF:
+  -- latexmk defaults `-auxdir` to `-outdir`, and tectonic has no aux
+  -- directory at all.
+  project.aux_dir = (aux_set and not env_out) and directory(backend.aux_dir) or project.out_dir
+  project.aux_dir_set = aux_set
 
   return project
 end

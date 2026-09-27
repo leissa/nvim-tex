@@ -19,8 +19,8 @@ M.defaults = {
 
   compiler = {
     enabled = true,
-    --- Only 'latexmk' is implemented; the dispatch table lives in
-    --- `nvim-tex.compiler` so further backends can be added.
+    --- 'latexmk' or 'tectonic'. The options of the active backend live in
+    --- the table of the same name below.
     method = 'latexmk',
     --- Suppress "started"/"stopped"/"success" messages.
     silent = false,
@@ -39,6 +39,7 @@ M.defaults = {
         '-interaction=nonstopmode',
       },
       --- Relative paths are taken relative to the main file's directory.
+      --- An empty `aux_dir` follows `out_dir`, as latexmk itself does.
       aux_dir = '',
       out_dir = '',
       --- Extra extensions for `:TexClean`, space separated, no leading dot.
@@ -59,6 +60,24 @@ M.defaults = {
         ['context (luatex)'] = '-pdf -pdflatex=context',
         ['context (xetex)'] = '-pdf -pdflatex=texexec --xtx',
       },
+    },
+
+    tectonic = {
+      executable = 'tectonic',
+      --- Tectonic reruns the engine and BibTeX itself and has no watch mode
+      --- for a plain file, so every compilation is a single shot; combine it
+      --- with `build_on_save` for a continuous feel.
+      options = {
+        '--synctex',
+        '--keep-logs',
+      },
+      --- Relative to the main file's directory. Tectonic has no separate aux
+      --- directory: the log lands next to the PDF.
+      out_dir = '',
+      --- Extra extensions for `:TexClean`, space separated, no leading dot.
+      clean_ext = '',
+      --- Functions called with every line of compiler output.
+      hooks = {},
     },
   },
 
@@ -158,8 +177,74 @@ M.defaults = {
     warn_missing_parser = true,
     --- Enable `:h treesitter-highlight` for LaTeX buffers.
     highlight = true,
-    --- Use tree-sitter based folding.
-    fold = false,
+  },
+
+  --- Folding through `vim.treesitter.foldexpr()`, with a `folds` query
+  --- built from these options. Needs the `latex` parser.
+  fold = {
+    enabled = false,
+    --- From `\documentclass` to the line before `\begin{document}`.
+    preamble = true,
+    --- Parts, chapters, sections, ... down to subparagraphs, nested.
+    sections = true,
+    --- Multi-line environments, verbatim ones included.
+    envs = true,
+    --- Environments that never fold.
+    ignored_envs = { 'document' },
+    --- `\[ ... \]` and `$$ ... $$`.
+    math = true,
+    --- `\begin{comment}` and `\iffalse ... \fi` blocks.
+    comments = true,
+  },
+
+  --- Conceal (VimTeX's syntax conceal, from the parse tree). Shows only
+  --- with 'conceallevel' at 1 or 2, which nvim-tex leaves to you.
+  conceal = {
+    enabled = true,
+    --- `\alpha` -> α, in math.
+    greek = true,
+    --- `\leq` -> ≤, `\to` -> →, `\sum` -> ∑, ..., in math.
+    math_symbols = true,
+    --- `\mathbb{R}` -> ℝ, `\mathcal{A}` -> 𝒜, `\mathfrak{g}` -> 𝔤.
+    math_fonts = true,
+    --- `x^2` -> x², `a_{ij}` -> aᵢⱼ, when every character has a form.
+    math_super_sub = true,
+    --- Hide `\left`, `\right`, `\bigl`, ...
+    math_delimiters = true,
+    --- `\'e` -> é, `\"{a}` -> ä, `\c c` -> ç.
+    accents = true,
+    --- `\ss` -> ß, `\dots` -> …, `\S` -> §, ...
+    text_symbols = true,
+    --- `--` -> –, `---` -> —, ``` ``quoted'' ``` -> “quoted”.
+    ligatures = true,
+    --- `\,`, `\quad` and friends -> a space.
+    spacing = true,
+    --- `\textbf{x}` -> x in bold; also `\textit`, `\emph`, `\underline`.
+    styles = true,
+    --- `\cite{key}` -> [key].
+    cites = true,
+    --- `\item` -> •.
+    item = true,
+    --- Your own commands, e.g. `{ ['\\R'] = 'ℝ' }`, in text and math.
+    custom = {},
+  },
+
+  --- `:TexCountWords` and `:TexCountLetters`.
+  texcount = {
+    executable = 'texcount',
+    --- Extra flags, appended to the ones nvim-tex passes itself: for example
+    --- `{ '-incbib' }` to count the bibliography too.
+    options = {},
+  },
+
+  --- LaTeX-aware indentation through `indentexpr`. Needs the `latex` parser.
+  indent = {
+    enabled = true,
+    --- List environments: `\item` is indented one level into them, and the
+    --- lines that continue an item one level further.
+    lists = { 'itemize', 'enumerate', 'description', 'thebibliography' },
+    --- Environments whose body is not indented.
+    ignored_envs = { 'document' },
   },
 
   toc = {
@@ -350,29 +435,42 @@ M.defaults = {
 ---@type table
 M.options = vim.deepcopy(M.defaults)
 
+--- Lists users realistically replace. `vim.tbl_deep_extend` merges
+--- list-like tables key by key, which would keep stale trailing entries, so
+--- for these the user value is taken verbatim.
+local LISTS = {
+  { 'filetypes' },
+  { 'compiler', 'latexmk', 'options' },
+  { 'compiler', 'tectonic', 'options' },
+  { 'texcount', 'options' },
+  { 'qf', 'ignore_filters' },
+  { 'fold', 'ignored_envs' },
+  { 'indent', 'lists' },
+  { 'indent', 'ignored_envs' },
+  { 'imaps', 'list' },
+  { 'imaps', 'disabled' },
+}
+
 ---@param opts table|nil
 function M.setup(opts)
-  M.options = vim.tbl_deep_extend('force', vim.deepcopy(M.defaults), opts or {})
-  -- `vim.tbl_deep_extend` merges list-like tables key by key, which would keep
-  -- stale trailing entries. For the lists users realistically replace we take
-  -- the user value verbatim.
   local user = opts or {}
-  if vim.tbl_get(user, 'compiler', 'latexmk', 'options') then
-    M.options.compiler.latexmk.options = user.compiler.latexmk.options
-  end
-  if vim.tbl_get(user, 'qf', 'ignore_filters') then
-    M.options.qf.ignore_filters = user.qf.ignore_filters
-  end
-  if vim.tbl_get(user, 'filetypes') then
-    M.options.filetypes = user.filetypes
-  end
-  if vim.tbl_get(user, 'imaps', 'list') then
-    M.options.imaps.list = user.imaps.list
-  end
-  if vim.tbl_get(user, 'imaps', 'disabled') then
-    M.options.imaps.disabled = user.imaps.disabled
+  M.options = vim.tbl_deep_extend('force', vim.deepcopy(M.defaults), user)
+  for _, path in ipairs(LISTS) do
+    local value = vim.tbl_get(user, unpack(path))
+    if value then
+      local parent = vim.tbl_get(M.options, unpack(path, 1, #path - 1)) or M.options
+      parent[path[#path]] = value
+    end
   end
   return M.options
+end
+
+--- The options table of the active compiler backend,
+--- `compiler[compiler.method]`.
+---@return table
+function M.compiler_options()
+  local compiler = M.options.compiler or {}
+  return compiler[compiler.method] or {}
 end
 
 --- Convenience accessor: `config.get('compiler', 'latexmk', 'executable')`.

@@ -23,6 +23,9 @@ CONTENTS                                                    *nvim-tex-contents*
  10. Quickfix ............................. |nvim-tex-quickfix|
  11. LSP .................................. |nvim-tex-lsp|
  12. Tree-sitter .......................... |nvim-tex-treesitter|
+       Indentation ........................ |nvim-tex-indent|
+       Folding ............................ |nvim-tex-fold|
+       Conceal ............................ |nvim-tex-conceal|
  13. Table of contents .................... |nvim-tex-toc|
  14. Events ............................... |nvim-tex-events|
  15. Differences from VimTeX .............. |nvim-tex-vimtex|
@@ -129,10 +132,11 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
 `cache_root`                  Where compiler scratch data is kept.
 
 `compiler.enabled`            Enable the compiler interface.
-`compiler.method`             Only `'latexmk'` for now.
+`compiler.method`             `'latexmk'` (the default) or `'tectonic'`.
 `compiler.silent`             Suppress start/stop/success messages.
 `compiler.build_on_save`      Run a single shot compilation on `:write`.
 `compiler.latexmk.*`          See |nvim-tex-compiler|.
+`compiler.tectonic.*`         See |nvim-tex-compiler-tectonic|.
 
 `view.enabled`                Enable the viewer interface.
 `view.method`                 `'auto'`, `'zathura'`, `'sioyek'`, `'okular'`,
@@ -143,8 +147,13 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
 `qf.*`                        See |nvim-tex-quickfix|.
 `lsp.*`                       See |nvim-tex-lsp|.
 `treesitter.*`                See |nvim-tex-treesitter|.
+`indent.*`                    See |nvim-tex-indent|.
+`fold.*`                      See |nvim-tex-fold|.
+`conceal.*`                   See |nvim-tex-conceal|.
 `toc.*`                       See |nvim-tex-toc|.
 `edit.*`                      Toggle maps for |nvim-tex-edit-mappings|.
+`texcount.executable`         `texcount`, as a string or list.
+`texcount.options`            Extra flags for |:TexCountWords|.
 `imaps.*`                     Insert mode math mappings. See
                             |nvim-tex-imaps|.
 `mappings.*`                  See |nvim-tex-mappings|.
@@ -363,6 +372,19 @@ An entry understands these keys:
 :TexLog                 Open the LaTeX `.log` file.
                                                                    *:TexImaps*
 :TexImaps               List the insert mode math mappings.
+                                           *:TexCountWords* *:TexCountLetters*
+:[range]TexCountWords[!]
+                        Count the words of the document with `texcount`,
+                        following `\input` and `\include`. Text, headings,
+                        captions and math all count, the way `texcount -sum`
+                        adds them up. With [range], only those lines. With [!],
+                        show texcount's full report, per included file, in a
+                        split. The files are read from disk, so unsaved
+                        changes are left out; you are told when there are any.
+:[range]TexCountLetters[!]
+                        The same, counting letters instead of words.
+                        `texcount.options` adds flags, `{ '-incbib' }` for
+                        example.
                                                     *:TexStatus* *:TexInfo*
 :TexStatus              Report the compilation status of this project.
 :TexStatusAll           Report the status of every known project.
@@ -432,7 +454,9 @@ command toggles, so pressing `<localleader>l` again stops it. Without it,
 every invocation is a single run.
 
 Relative `aux_dir` and `out_dir` are resolved against the directory of the
-main file, and the directories are created if missing. Both may be functions
+main file, and the directories are created if missing. An empty `aux_dir`
+follows `out_dir`, as latexmk's `-auxdir` does, so the log is looked for
+next to the PDF. Both may be functions
 of a `file_info` table with the keys `root`, `target`, `target_basename`,
 `target_name` and `jobname`. `$VIMTEX_OUTPUT_DIRECTORY` and
 `$NVIM_TEX_OUTPUT_DIRECTORY` take priority over both.
@@ -442,6 +466,39 @@ behind.
 
 `compiler.latexmk.options` is replaced wholesale when you set it, not merged,
 because the defaults are only useful as a complete set.
+
+TECTONIC                                           *nvim-tex-compiler-tectonic*
+
+Set `compiler.method = 'tectonic'` to build with Tectonic instead: >lua
+
+    compiler = {
+      method = 'tectonic',
+      tectonic = {
+        executable = 'tectonic',
+        options = { '--synctex', '--keep-logs' },
+        out_dir = '',                 -- string or function(file_info)
+        clean_ext = '',
+        hooks = {},
+      },
+    }
+<
+Tectonic reruns TeX and BibTeX itself, so one run gives a finished PDF. It
+has no watch mode for a plain `.tex` file, though (`tectonic -X watch` needs
+a `Tectonic.toml` workspace), so every compilation is a single shot and
+`<localleader>l` does not start a continuous build. Set
+`compiler.build_on_save = true` to rebuild on every `:write` instead.
+
+Differences from latexmk to be aware of:
+  - Tectonic has no separate aux directory; the log is written next to the
+    PDF. `--keep-logs` must stay in `options`, or the quickfix list has
+    nothing to read.
+  - The engine is always XeTeX; a `% !TeX program` directive is ignored.
+  - `:TexClean` deletes the files itself, since tectonic has no clean
+    command: the log, the SyncTeX data and the intermediates that
+    `--keep-intermediates` leaves behind, plus `clean_ext`. `:TexClean!`
+    also removes the PDF.
+  - Tectonic stops at the first error. Add `'-Z', 'continue-on-errors'` to
+    `options` to see all of them at once.
 
 ==============================================================================
 9. VIEWER                                                     *nvim-tex-viewer*
@@ -585,10 +642,127 @@ the plugin says so once per buffer.
       enabled = true,
       warn_missing_parser = true,
       highlight = true,          -- vim.treesitter.start()
-      fold = false,              -- foldexpr = v:lua.vim.treesitter.foldexpr()
     }
 <
-Set `highlight = false` if another plugin already starts the parser for you.
+Neovim ships no highlight query for LaTeX; nvim-treesitter does. With one,
+`highlight = true` starts tree-sitter highlighting. Without one, nvim-tex
+leaves Neovim's regex `syntax/tex.vim` in charge, because starting the
+highlighter would switch it off and leave the buffer without any highlighting.
+`:checkhealth nvim-tex` says which of the two you get. Set
+`highlight = false` if another plugin already starts the parser for you.
+
+nvim-treesitter's injection query highlights the code in `minted`, `pycode`,
+`luacode` and similar environments in its own language. nvim-tex adds
+`lstlisting`, whose language is given in its options:
+`\begin{lstlisting}[language=Python]`. The listings names are mapped to parser
+names (`C++` is `cpp`, `sh` is `bash`); the parser has to be installed.
+
+INDENTATION                                                  *nvim-tex-indent*
+
+nvim-tex sets 'indentexpr' for LaTeX buffers, so `=`, `o`, `O` and typing
+work structurally. The rules follow VimTeX:
+
+  - An environment body is indented one level. `document` is not.
+  - In a list environment `\item` sits one level in, and the lines that
+    continue an item one level further.
+  - Multi-line `{ ... }` groups, `[ ... ]` option lists, `\left ... \right`,
+    `\[ ... \]` and `$$ ... $$` indent their contents one level.
+  - A line starting with a closing delimiter lines up with the line that
+    opened it.
+  - Verbatim-like environments (`verbatim`, `lstlisting`, `minted`,
+    `comment`, ...) keep whatever indentation their contents have.
+
+The parse tree decides what counts as a delimiter, so `\{`, a brace in a
+comment or the `[` of `[a, b)` are ignored. 'indentkeys' reindent the line
+when a closing brace or bracket is typed, and when a line starts with `\item`,
+`\bibitem`, `\end`, `\right` or `\]`.
+>lua
+    indent = {
+      enabled = true,
+      lists = { 'itemize', 'enumerate', 'description', 'thebibliography' },
+      ignored_envs = { 'document' },
+    }
+<
+Both lists are replaced, not merged, when you set them. Indentation needs the
+`latex` parser; without it, or with `enabled = false`, Neovim's own
+`indent/tex.vim` stays in charge.
+
+FOLDING                                                        *nvim-tex-fold*
+
+Folding is off by default. With it on, 'foldmethod' is `expr` and
+'foldexpr' is |vim.treesitter.foldexpr()|, which computes the folds from the
+parse tree and keeps them up to date as you type. Neovim ships no fold query
+for LaTeX, so nvim-tex installs its own; it takes precedence over the one
+from nvim-treesitter.
+>lua
+    fold = {
+      enabled = false,
+      preamble = true,           -- \documentclass up to \begin{document}
+      sections = true,           -- \part ... \subparagraph, nested
+      envs = true,               -- multi-line environments
+      ignored_envs = { 'document' },
+      math = true,               -- \[ ... \] and $$ ... $$
+      comments = true,           -- \begin{comment}, \iffalse ... \fi
+    }
+<
+A section fold runs up to the line before whatever follows the section, so
+the blank lines between two sections fold with the first. `ignored_envs`
+matches names without a trailing `*`: `'figure'` also covers `figure*`.
+The options are read whenever the folds are computed. Neovim only recomputes
+them when the text changes, so after changing an option, `:edit` the buffer
+to see the effect (`zx` is not enough).
+
+Nothing else is set. 'foldlevel', 'foldtext' and friends are yours: for
+example, `vim.opt.foldlevel = 99` starts with every fold open, and
+`vim.opt.foldtext = ''` shows the first line of a fold highlighted.
+
+CONCEAL                                                      *nvim-tex-conceal*
+
+nvim-tex conceals LaTeX markup the way VimTeX's syntax does, but reads what
+is what off the parse tree: `\alpha` shows as α only in math, never in text
+or a comment. Nothing shows until you set 'conceallevel', which nvim-tex
+leaves to you: >lua
+
+    vim.opt_local.conceallevel = 2     -- e.g. in ftplugin/tex.lua
+<
+With 'conceallevel' at 0 the conceal costs nothing. 'concealcursor' decides
+whether the cursor line shows the source; by default it does.
+
+    Category            Source                  Shown as ~
+    `greek`               `$\alpha, \Omega$`        `α, Ω`
+    `math_symbols`        `$\leq \to \sum \{$`      `≤ → ∑ {`
+    `math_fonts`          `$\mathbb{R} \mathcal{A}$` `ℝ 𝒜`
+    `math_super_sub`      `$x^2 + a_{ij}$`          `x² + aᵢⱼ`
+    `math_delimiters`     `$\left( x \bigr]$`       `( x ]`
+    `accents`             `caf\'e na\"{i}ve`        `café naïve`
+    `text_symbols`        `Stra\ss{}e \dots`        `Straße …`
+    `ligatures`           `1--2 --- ``q''`          `1–2 — “q”`
+    `spacing`             `a\,b \quad`              `a b  `
+    `styles`              `\textbf{x} \emph{y}`     `x` in bold, `y` in italics
+    `cites`               `\cite{knuth}`            `[knuth]`
+    `item`                `\item`                   `•`
+
+Each category is a key under `conceal`, true by default: >lua
+
+    conceal = {
+      enabled = true,
+      greek = true,
+      math_symbols = true,
+      -- ...
+      custom = { ['\\R'] = 'ℝ', ['\\eps'] = 'ε' },
+    }
+<
+`custom` conceals commands of your own, in text and math alike.
+
+A superscript or subscript is only concealed when every character in it has a
+Unicode form: `x^{q}` stays as it is. A citation with a page or other
+optional argument is left alone too, so the extra information stays visible.
+
+`syntax/tex.vim` conceals on its own, and the two together garble the text.
+So while nvim-tex conceals, `g:tex_conceal` is set to empty, unless you set it
+yourself. The styles use the highlight groups `NvimTexBold`, `NvimTexItalic`
+and `NvimTexUnderline`, which link to `@markup.strong`, `@markup.italic` and
+`@markup.underline`.
 
 ==============================================================================
 13. TABLE OF CONTENTS                                            *nvim-tex-toc*
@@ -650,10 +824,11 @@ Deliberately different:
     of `g:` variables.
   - `<plug>` mappings are replaced by commands and the Lua API.
 
-Not implemented yet:
-  - Folding beyond `treesitter.fold`, and LaTeX-aware indentation.
-  - Compiler backends other than `latexmk`.
-  - `:VimtexCountWords` and the syntax-highlighting extensions.
+Done differently:
+  - Syntax highlighting is tree-sitter's (with nvim-treesitter's query) or
+    Neovim's `syntax/tex.vim`; nvim-tex ships no syntax file. Conceal, and
+    code highlighting in `lstlisting`, come from the parse tree instead of
+    syntax rules. See |nvim-tex-conceal|.
 
 ==============================================================================
 16. CREDITS                                                  *nvim-tex-credits*

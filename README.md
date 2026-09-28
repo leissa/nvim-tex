@@ -153,11 +153,12 @@ Motions (normal, visual, operator-pending, with a count):
 | `]n` `[n` | math zone start                              | `]N` `[N` | math zone end  |
 | `]r` `[r` | `\begin{frame}`                              | `]R` `[R` | `\end{frame}`  |
 | `]/` `[/` | comment                                      | `]*` `[*` | end of comment |
+| `];` `[;` | TikZ statement                               |           |                |
 | `%`       | matching `\begin` / `\end` or math delimiter |           |                |
 
 Text objects: `ae`/`ie` environment, `ac`/`ic` command, `a$`/`i$` math,
 `ad`/`id` delimiters (including `\left( … \right)`), `am`/`im` item,
-`aP`/`iP` section.
+`aP`/`iP` section, `a;`/`i;` TikZ statement.
 
 Editing: `dse` `dsc` `ds$` `dsd`, `cse` `csc` `cs$` `csd`,
 `tsf` `tsc` `tsb` `tss` `tse` `ts$` `tsd` `tsD`, `<F6>` surround with an
@@ -224,8 +225,9 @@ indented (except `document`), `\item` sits one level into a list and its
 continuation lines one level further, multi-line `{…}`, `[…]`,
 `\left…\right` and `\[…\]` indent their contents, and verbatim
 environments are left alone. The parse tree decides what counts as a
-delimiter, so `\{` or a brace in a comment never throws it off. See
-`:help nvim-tex-indent`.
+delimiter, so `\{` or a brace in a comment never throws it off. In a TikZ
+picture, the lines that continue a path are indented one level until its `;`.
+See `:help nvim-tex-indent` and `:help nvim-tex-tikz`.
 
 ## Folding
 

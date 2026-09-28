@@ -227,4 +227,61 @@ describe('textobj', function()
       T.falsy(text:find('second body'))
     end)
   end)
+
+  describe('tikz statement', function()
+    local PIC = {
+      '\\begin{tikzpicture}',
+      '  \\draw (a)',
+      '    -- (b) ;',
+      '  \\node {x}; \\node {y};',
+      '\\end{tikzpicture}',
+    }
+
+    it('a; takes a statement on lines of its own linewise', function()
+      H.buf(PIC)
+      H.cursor_at('-- (b)')
+      local selection = H.selection(function()
+        textobj.statement(false)
+      end)
+      T.eq('V', selection.mode)
+      T.eq('  \\draw (a)\n    -- (b) ;', H.selected_text(selection))
+    end)
+
+    it('a; takes the statement the line starts with from the indentation', function()
+      H.buf(PIC)
+      H.cursor(2, 0)
+      local selection = H.selection(function()
+        textobj.statement(false)
+      end)
+      T.eq(2, selection.srow)
+      T.eq(3, selection.erow)
+    end)
+
+    it('a; shares a line characterwise', function()
+      T.eq(
+        '\\node {y};',
+        selected(PIC, 'y}', function()
+          textobj.statement(false)
+        end)
+      )
+    end)
+
+    it('i; leaves the ; and the blanks before it', function()
+      T.eq(
+        '\\draw (a)\n    -- (b)',
+        selected(PIC, '(a)', function()
+          textobj.statement(true)
+        end)
+      )
+    end)
+
+    it('selects nothing outside a picture', function()
+      T.eq(
+        nil,
+        selected({ '\\draw (a);' }, 'a', function()
+          textobj.statement(false)
+        end)
+      )
+    end)
+  end)
 end)

@@ -16,7 +16,11 @@
 --- indent, plus the delimiters that line leaves open. Only a line that
 --- starts with a closing delimiter, or with `\item`, is aligned to its opening
 --- line directly, when the tree has it.
+---
+--- In a TikZ picture, the lines that continue a statement are indented one
+--- level further than its first line, see `continuation`.
 local config = require('nvim-tex.config')
+local tikz = require('nvim-tex.tikz')
 local ts = require('nvim-tex.ts')
 
 local M = {}
@@ -195,6 +199,51 @@ local function indent_of(bufnr, row)
   end)
 end
 
+--- Nodes that are only a run of tokens, not a delimited part of a statement.
+local RUNS = { text = true, ERROR = true }
+
+--- How many levels of TikZ continuation line `row` sits at: one on the lines
+--- after the first of a statement, plus what the line has that opens the
+--- `{ ... }` body of a `\foreach` the statement is in. A line inside a
+--- multi-line group or argument of a statement is at the level of the line
+--- the group starts on; the group itself indents its contents.
+---@param bufnr integer
+---@param root TSNode
+---@param row integer 0-indexed
+---@param seen table<integer, integer> levels of the rows already asked for
+---@return integer
+local function continuation(bufnr, root, row, seen)
+  if seen[row] then
+    return seen[row]
+  end
+  local first = line_at(bufnr, row):find('%S')
+  local col = first and first - 1 or 0
+  local statement = tikz.statement_at(bufnr, row, col, { reach = true, root = root })
+  local level = 0
+  if statement then
+    -- The outermost node below the statement's region that starts on an
+    -- earlier line.
+    local outer
+    local node = root:descendant_for_range(row, col, row, col)
+    while node and not node:equal(statement.region) do
+      if not RUNS[node:type()] and node:start() < row then
+        outer = node
+      end
+      node = node:parent()
+    end
+    if outer then
+      level = continuation(bufnr, root, (outer:start()), seen)
+    else
+      level = statement.range[1] < row and 1 or 0
+      if statement.region:type() == 'curly_group' then
+        level = level + continuation(bufnr, root, (statement.region:start()), seen)
+      end
+    end
+  end
+  seen[row] = level
+  return level
+end
+
 --- The indent for line `lnum` of `bufnr`, or -1 to keep the current one.
 ---@param lnum integer 1-indexed
 ---@param bufnr integer|nil
@@ -264,6 +313,8 @@ function M.get(lnum, bufnr)
   end
 
   local levels = open_levels(tokens(root, prow, #line_at(bufnr, prow)), bufnr, opts)
+  local seen = {}
+  levels = levels + continuation(bufnr, root, row, seen) - continuation(bufnr, root, prow, seen)
 
   if lead_kind == 'close' then
     levels = levels - lead_levels

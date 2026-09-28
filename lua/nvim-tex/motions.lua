@@ -2,6 +2,7 @@
 ---
 --- All motions are exclusive and work in normal, visual and operator-pending
 --- mode. They accept a count.
+local tikz = require('nvim-tex.tikz')
 local ts = require('nvim-tex.ts')
 
 local M = {}
@@ -32,7 +33,12 @@ local function targets(kind, which)
   local bufnr = vim.api.nvim_get_current_buf()
   local nodes
 
-  if kind == 'section' then
+  if kind == 'statement' then
+    -- TikZ statements are not nodes; `all_statements` is already sorted.
+    return vim.tbl_map(function(statement)
+      return { statement.range[1] + 1, statement.range[2] }
+    end, tikz.all_statements(bufnr))
+  elseif kind == 'section' then
     nodes = ts.collect(bufnr, ts.SECTION)
   elseif kind == 'environment' then
     nodes = ts.collect(bufnr, ts.ENVIRONMENT)
@@ -227,6 +233,12 @@ M.map = {
   end,
   ['[*'] = function()
     M.jump('comment', 'finish', 'prev')
+  end,
+  ['];'] = function()
+    M.jump('statement', 'start', 'next')
+  end,
+  ['[;'] = function()
+    M.jump('statement', 'start', 'prev')
   end,
   ['%'] = M.match_pair,
 }

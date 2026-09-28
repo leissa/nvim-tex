@@ -24,6 +24,7 @@ CONTENTS                                                    *nvim-tex-contents*
  11. LSP .................................. |nvim-tex-lsp|
  12. Tree-sitter .......................... |nvim-tex-treesitter|
        Indentation ........................ |nvim-tex-indent|
+       TikZ ............................... |nvim-tex-tikz|
        Folding ............................ |nvim-tex-fold|
        Conceal ............................ |nvim-tex-conceal|
  13. Table of contents .................... |nvim-tex-toc|
@@ -150,6 +151,7 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
 `lsp.*`                       See |nvim-tex-lsp|.
 `treesitter.*`                See |nvim-tex-treesitter|.
 `indent.*`                    See |nvim-tex-indent|.
+`tikz.*`                      See |nvim-tex-tikz|.
 `fold.*`                      See |nvim-tex-fold|.
 `conceal.*`                   See |nvim-tex-conceal|.
 `toc.*`                       See |nvim-tex-toc|.
@@ -240,6 +242,7 @@ operator-pending mode.
   ]R    next `\end{frame}`               [R    previous `\end{frame}`
   ]/    next comment                     [/    previous comment
   ]*    next end of a comment            [*    previous end of a comment
+  ];    next TikZ statement              [;    previous TikZ statement
   %     jump between `\begin` and `\end`, or between math delimiters
 
 `%` falls back to the built-in |%| when the cursor is not on an environment
@@ -256,6 +259,7 @@ Available in visual and operator-pending mode.
   ad id   delimiters, including `\left( ... \right)`
   am im   `\item`
   aP iP   section
+  a; i;   TikZ statement; `i;` leaves the `;` out, see |nvim-tex-tikz|
 
 Examples: >
 
@@ -695,9 +699,47 @@ when a closing brace or bracket is typed, and when a line starts with `\item`,
       ignored_envs = { 'document' },
     }
 <
+In a TikZ picture, the lines that continue a statement are indented one level
+further than its first line, until the `;` that ends it. See |nvim-tex-tikz|.
+
 Both lists are replaced, not merged, when you set them. Indentation needs the
 `latex` parser; without it, or with `enabled = false`, Neovim's own
 `indent/tex.vim` stays in charge.
+
+TIKZ                                                           *nvim-tex-tikz*
+
+The parser has no TikZ grammar, so nvim-tex splits a picture into its
+statements itself, reading groups, math, comments and commands off the parse
+tree. A `;` in a node label, an option list or a comment never ends a
+statement. A statement is
+
+  - a path, from `\draw`, `\node` or another of `path_commands`, up to its
+    `;`, over as many lines as it takes;
+  - a `\foreach` loop, up to the `;` of the path it repeats or the end of its
+    `{ ... }` body, whose statements are statements in turn;
+  - any other command, with the braced arguments that follow it on its line:
+    `\tikzset{...}`, `\pgfmathsetmacro{\x}{1}`, `\def\x{1}`.
+
+`scope` and other environments in a picture, and `{ ... }` scopes, hold
+statements of their own. `a;`/`i;` select a statement, `];`/`[;` jump
+between them, and indentation continues a path until its `;`: >
+
+  \begin{tikzpicture}
+    \draw[->] (a)
+      -- node[above] {$\alpha$} (b)
+      -- (c);
+  \end{tikzpicture}
+<
+>lua
+    tikz = {
+      environments = { 'tikzpicture', 'circuitikz' },
+      path_commands = { 'path', 'draw', 'fill', 'node', ... },
+    }
+<
+Commands are given without the backslash; the full default list is in
+`lua/nvim-tex/config.lua`. Add a macro of your own that starts a path, such
+as `\edge` in `\edge[red] (a) (b);`, to `path_commands`. Both lists are
+replaced, not merged, when you set them.
 
 FOLDING                                                        *nvim-tex-fold*
 

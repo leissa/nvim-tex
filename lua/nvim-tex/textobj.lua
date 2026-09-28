@@ -6,6 +6,8 @@
 ---   ad/id  delimiters (groups and `\left ... \right`)
 ---   am/im  `\item`
 ---   aP/iP  section
+---   a;/i;  TikZ statement
+local tikz = require('nvim-tex.tikz')
 local ts = require('nvim-tex.ts')
 
 local M = {}
@@ -300,6 +302,49 @@ function M.section(inner)
   end
 end
 
+--- A statement of a TikZ picture, see `nvim-tex.tikz`. `a;` takes the whole
+--- statement, linewise when it has its lines to itself; `i;` leaves the `;`
+--- behind.
+---@param inner boolean
+function M.statement(inner)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local row, col = cursor[1], cursor[2]
+  -- From the indentation, the statement the line starts with.
+  local first = line_at(row):find('%S')
+  if first and col < first - 1 then
+    col = first - 1
+  end
+  local statement = tikz.statement_at(0, row - 1, col)
+  if not statement then
+    return
+  end
+
+  local sr, sc, er, ec = unpack(statement.range)
+  if not inner then
+    local before = line_at(sr + 1):sub(1, sc)
+    local after = line_at(er + 1):sub(ec + 1)
+    if before:match('^%s*$') and after:match('^%s*$') then
+      select_range(sr + 1, 0, er + 1, math.max(0, #line_at(er + 1) - 1), true)
+    else
+      select_range(sr + 1, sc, er + 1, ec - 1)
+    end
+    return
+  end
+
+  -- Without the `;` and the blanks before it.
+  local text = table.concat(vim.api.nvim_buf_get_text(0, sr, sc, er, ec, {}), '\n')
+  if statement.semicolon then
+    text = text:sub(1, -2)
+  end
+  text = text:gsub('%s+$', '')
+  if text == '' then
+    return
+  end
+  local lines = vim.split(text, '\n', { plain = true })
+  local last = #lines == 1 and sc + #lines[1] or #lines[#lines]
+  select_range(sr + 1, sc, sr + #lines, last - 1)
+end
+
 --- Mapping table: lhs -> function. Used by `nvim-tex.keymaps`.
 M.map = {
   ['ae'] = function()
@@ -337,6 +382,12 @@ M.map = {
   end,
   ['iP'] = function()
     M.section(true)
+  end,
+  ['a;'] = function()
+    M.statement(false)
+  end,
+  ['i;'] = function()
+    M.statement(true)
   end,
 }
 

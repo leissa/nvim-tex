@@ -135,4 +135,31 @@ describe('motions', function()
       T.eq(12, vim.api.nvim_win_get_cursor(0)[2]) -- the closing brace
     end)
   end)
+
+  describe('tikz statements', function()
+    local PIC = {
+      '\\begin{tikzpicture}', -- 1
+      '  \\draw (a)', -- 2
+      '    -- (b);', -- 3
+      '  \\foreach \\i in {1,2} {', -- 4
+      '    \\fill (\\i,0);', -- 5
+      '  }', -- 6
+      '\\end{tikzpicture}', -- 7
+    }
+
+    before_each(function()
+      H.buf(PIC)
+    end)
+
+    it(']; goes to the next statement, nested ones included', function()
+      T.eq(2, jump_from(1, 0, motions.map['];']))
+      T.eq(4, jump_from(3, 0, motions.map['];']))
+      T.eq(5, jump_from(4, 2, motions.map['];']))
+    end)
+
+    it('[; goes to the previous statement', function()
+      T.eq(4, jump_from(5, 4, motions.map['[;']))
+      T.eq(2, jump_from(3, 4, motions.map['[;']))
+    end)
+  end)
 end)

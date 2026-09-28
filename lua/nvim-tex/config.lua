@@ -267,6 +267,39 @@ M.defaults = {
     ignored_envs = { 'document' },
   },
 
+  --- TikZ pictures: the statements `a;`/`i;` select, `];`/`[;` jump to and
+  --- indentation continues.
+  tikz = {
+    --- Environments whose body is a list of TikZ statements.
+    environments = { 'tikzpicture', 'circuitikz' },
+    --- Commands, without the backslash, that start a path running to the
+    --- next `;`. Any other command at the start of a statement is a
+    --- statement of its own, with the braced arguments that follow it:
+    --- `\tikzset{...}`, `\pgfmathsetmacro{\x}{1}`.
+    path_commands = {
+      'path',
+      'draw',
+      'fill',
+      'filldraw',
+      'pattern',
+      'shade',
+      'shadedraw',
+      'clip',
+      'useasboundingbox',
+      'node',
+      'coordinate',
+      'pic',
+      'matrix',
+      'graph',
+      'datavisualization',
+      'calendar',
+      'chainin',
+      'spy',
+      'addplot',
+      'addplot3',
+    },
+  },
+
   toc = {
     --- Window layout: 'vsplit', 'split' or 'tab'.
     split = 'vsplit',
@@ -441,9 +474,9 @@ M.defaults = {
     --- `<localleader>` is already buffer-local, so unlike vimtex there is no
     --- extra `l` layer: `<localleader>l` compiles, `<localleader>c` cleans.
     prefix = '<localleader>',
-    --- Motions: ]] [[ ][ [] ]m [m ]n [n ]r [r ]/ [/ and %
+    --- Motions: ]] [[ ][ [] ]m [m ]n [n ]r [r ]/ [/ ]; [; and %
     motions = true,
-    --- Text objects: ae/ie ac/ic a$/i$ ad/id am/im aP/iP
+    --- Text objects: ae/ie ac/ic a$/i$ ad/id am/im aP/iP a;/i;
     text_objects = true,
     --- ds*/cs*/ts* delete, change and toggle mappings plus <F6>/<F7>.
     surround = true,
@@ -467,6 +500,8 @@ local LISTS = {
   { 'fold', 'ignored_envs' },
   { 'indent', 'lists' },
   { 'indent', 'ignored_envs' },
+  { 'tikz', 'environments' },
+  { 'tikz', 'path_commands' },
   { 'imaps', 'list' },
   { 'imaps', 'disabled' },
 }

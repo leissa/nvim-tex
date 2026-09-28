@@ -156,6 +156,41 @@ describe('indent', function()
     })
   end)
 
+  it('indents the lines that continue a TikZ statement', function()
+    roundtrip({
+      '\\begin{tikzpicture}',
+      '  \\draw[->] (a)',
+      '    -- node[above] {$\\alpha$} (b)',
+      '    % comment',
+      '    -- (c);',
+      '  \\draw (a) -- (b) {',
+      '    text',
+      '  }',
+      '    -- (c) node {',
+      '      d',
+      '    };',
+      '  \\foreach \\i in {1,...,3} {',
+      '    \\fill (\\i,0)',
+      '      circle (2pt);',
+      '  }',
+      '  \\tikzset{a/.style={b}}',
+      '  \\begin{scope}',
+      '    \\draw (0,0)',
+      '      -- (1,1);',
+      '  \\end{scope}',
+      '\\end{tikzpicture}',
+    })
+  end)
+
+  it('leaves the same lines alone outside a picture', function()
+    roundtrip({
+      '\\begin{center}',
+      '  \\draw (a)',
+      '  -- (b);',
+      '\\end{center}',
+    })
+  end)
+
   describe('while typing', function()
     it('indents the line after a \\begin that has no \\end yet', function()
       T.eq({ '\\begin{center}', '  x' }, typed({ '\\begin{center}' }, '<CR>x'))
@@ -177,6 +212,17 @@ describe('indent', function()
         { '\\begin{itemize}', '  \\item a', '\\end{itemize}' },
         typed({ '\\begin{itemize}', '  \\item a' }, '<CR>\\end{itemize}')
       )
+    end)
+
+    it('continues a TikZ path until its ;', function()
+      local bufnr = H.buf({ '\\begin{tikzpicture}', '\\end{tikzpicture}' })
+      vim.bo[bufnr].shiftwidth = 2
+      vim.bo[bufnr].expandtab = true
+      indent.attach(bufnr)
+      H.cursor(1, 0)
+      local keys = 'o\\draw (a)<CR>-- (b);<CR>\\fill<Esc>'
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), 'xt', false)
+      T.eq({ '\\begin{tikzpicture}', '  \\draw (a)', '    -- (b);', '  \\fill', '\\end{tikzpicture}' }, H.lines(bufnr))
     end)
 
     it('dedents a closing brace as it is typed', function()

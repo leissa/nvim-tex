@@ -140,6 +140,9 @@ local function leader_maps(map, prefix)
   map('n', prefix .. 'b', function()
     cite.cite(project())
   end, 'search online and cite')
+  map('n', prefix .. 'p', function()
+    require('nvim-tex.tikz.preview').preview(project())
+  end, 'preview the TikZ picture')
 end
 
 --- Environment / command / delimiter editing, and the insert mode helpers.

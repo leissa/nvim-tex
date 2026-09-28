@@ -168,8 +168,9 @@ local function goto_label(project, name)
   return false
 end
 
---- Act on whatever is under the cursor: citations, references, includes and
---- packages get a dedicated action, everything else falls back to the LSP.
+--- Act on whatever is under the cursor: citations, references, includes,
+--- packages and TikZ node names get a dedicated action, everything else falls
+--- back to the LSP.
 ---@param project table
 function M.context_menu(project)
   local bufnr = vim.api.nvim_get_current_buf()
@@ -222,6 +223,10 @@ function M.context_menu(project)
       util.warn('cannot open ' .. path)
       return
     end
+  end
+
+  if require('nvim-tex.tikz.nodes').goto_definition() then
+    return
   end
 
   if lsp.client(bufnr) then

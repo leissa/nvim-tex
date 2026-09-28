@@ -194,6 +194,20 @@ local COMMANDS = {
     { nargs = '*', desc = 'Search online for a paper, add it to the bibliography and cite it' },
   },
   {
+    'TexTikzPreview',
+    function()
+      require('nvim-tex.tikz.preview').preview(project())
+    end,
+    { desc = 'Compile the TikZ picture under the cursor on its own and show it' },
+  },
+  {
+    'TexTikzRename',
+    function(opts)
+      require('nvim-tex.tikz.nodes').rename(opts.args ~= '' and opts.args or nil)
+    end,
+    { nargs = '?', desc = 'Rename the TikZ node under the cursor throughout its picture' },
+  },
+  {
     'TexImaps',
     function()
       imaps.list()

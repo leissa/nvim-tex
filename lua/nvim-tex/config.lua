@@ -298,6 +298,35 @@ M.defaults = {
       'addplot',
       'addplot3',
     },
+    --- Complete node and style names with `<C-x><C-u>`: set 'completefunc',
+    --- unless something else already has.
+    completefunc = true,
+    --- `:TexTikzPreview` compiles the picture under the cursor on its own.
+    preview = {
+      --- Commands, without the backslash, copied from the document body
+      --- before the picture, besides `\newcommand`, `\def` and the other
+      --- definitions.
+      commands = {
+        'tikzset',
+        'tikzstyle',
+        'pgfmathsetmacro',
+        'pgfmathtruncatemacro',
+        'pgfmathsetlengthmacro',
+        'pgfplotsset',
+        'pgfkeys',
+        'pgfdeclarelayer',
+        'pgfsetlayers',
+        'colorlet',
+        'definecolor',
+        'newlength',
+        'setlength',
+        'usepgfplotslibrary',
+      },
+      --- Read the main document's `.aux`, so `\ref` and `\cite` resolve.
+      aux = true,
+      --- Space around the cropped picture.
+      border = '2pt',
+    },
   },
 
   toc = {
@@ -502,6 +531,7 @@ local LISTS = {
   { 'indent', 'ignored_envs' },
   { 'tikz', 'environments' },
   { 'tikz', 'path_commands' },
+  { 'tikz', 'preview', 'commands' },
   { 'imaps', 'list' },
   { 'imaps', 'disabled' },
 }

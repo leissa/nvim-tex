@@ -253,6 +253,45 @@ function M.compile_single_shot(project, opts)
   M.start(project, opts)
 end
 
+--- Compile `document` as a document of its own, in a throwaway project
+--- that shares the root of `project`, so relative paths resolve, but never
+--- its state or output files. The throwaway project is kept on `project`
+--- under `name`, so the next run reuses it and the viewer it opened.
+---@param project table
+---@param name string
+---@param document string[]
+---@param on_success fun(fragment: table)|nil
+function M.compile_fragment(project, name, document, on_success)
+  local dir = project_mod.cache_dir(project)
+  local target = util.join(dir, name .. '.tex')
+  util.writelines(target, document)
+
+  project.fragments = project.fragments or {}
+  local fragment = project.fragments[name]
+  if not fragment then
+    fragment = {
+      main = target,
+      root = project.root,
+      name = name,
+      out_dir = dir,
+      aux_dir = dir,
+      out_dir_set = true,
+      aux_dir_set = true,
+      output = {},
+    }
+    project.fragments[name] = fragment
+    project_mod.projects[target] = fragment
+  end
+  fragment.tex_program = project.tex_program
+
+  M.start(fragment, {
+    continuous = false,
+    on_success = on_success and function()
+      on_success(fragment)
+    end,
+  })
+end
+
 --- Compile a fragment (visual selection or motion) as a standalone document,
 --- reusing the preamble of the main file.
 ---@param project table
@@ -271,36 +310,18 @@ function M.compile_selected(project, lines)
     return
   end
 
-  local dir = project_mod.cache_dir(project)
-  local target = util.join(dir, 'selected.tex')
-
   local document = vim.list_extend({}, preamble)
   document[#document + 1] = '\\begin{document}'
   vim.list_extend(document, lines)
   document[#document + 1] = '\\end{document}'
-  util.writelines(target, document)
 
-  -- The fragment is compiled in its own throwaway project so that it never
-  -- disturbs the state or output files of the real document.
-  local fragment = {
-    main = target,
-    root = project.root,
-    name = 'selected',
-    tex_program = project.tex_program,
-    out_dir = dir,
-    aux_dir = dir,
-    out_dir_set = true,
-    aux_dir_set = true,
-    output = {},
-  }
-  project_mod.projects[target] = fragment
-
-  M.start(fragment, {
-    continuous = false,
-    on_success = function()
-      require('nvim-tex.viewer').view(fragment)
-    end,
-  })
+  M.compile_fragment(project, 'selected', document, function(fragment)
+    local viewer = require('nvim-tex.viewer')
+    -- A running viewer reloads the PDF by itself.
+    if not viewer.is_running(fragment) then
+      viewer.view(fragment, { forward_search = false })
+    end
+  end)
 end
 
 ---@param project table

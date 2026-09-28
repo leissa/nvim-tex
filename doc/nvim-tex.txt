@@ -219,11 +219,12 @@ here, `<localleader>lc` is `<localleader>c`, and so on.
   <localleader>s      toggle the main file                           `n`
   <localleader>a      context menu                                   `n`
   <localleader>b      search online and cite (|:TexCite|)             `n`
+  <localleader>p      preview the TikZ picture (|:TexTikzPreview|)    `n`
 
                                                      *nvim-tex-context-menu*
 The context menu (`<localleader>a`) acts on whatever is under the cursor: it
-jumps to the `.bib` entry of a citation, to the `\label` of a reference, or
-opens the file of an `\input`. On a `\usepackage` it opens the package
+jumps to the `.bib` entry of a citation, to the `\label` of a reference, to
+the definition of a TikZ node name, or opens the file of an `\input`. On a `\usepackage` it opens the package
 documentation, and everywhere else it falls back to |vim.lsp.buf.definition()|.
 
 ------------------------------------------------------------------------------
@@ -382,6 +383,11 @@ An entry understands these keys:
 :TexCite [query]        Search DBLP for [query] (asked for when omitted),
                         add the chosen paper to the bibliography and cite it.
                         See |nvim-tex-cite|.
+                                            *:TexTikzPreview* *:TexTikzRename*
+:TexTikzPreview         Compile the TikZ picture under the cursor on its own
+                        and show it. See |nvim-tex-tikz-preview|.
+:TexTikzRename [name]   Rename the TikZ node under the cursor throughout its
+                        picture; [name] is asked for when omitted.
                                                                    *:TexImaps*
 :TexImaps               List the insert mode math mappings.
                                            *:TexCountWords* *:TexCountLetters*
@@ -740,6 +746,60 @@ Commands are given without the backslash; the full default list is in
 `lua/nvim-tex/config.lua`. Add a macro of your own that starts a path, such
 as `\edge` in `\edge[red] (a) (b);`, to `path_commands`. Both lists are
 replaced, not merged, when you set them.
+
+                                                         *nvim-tex-tikz-nodes*
+Node names ~
+
+A node is named by `\node (a)`, `node (a)` on a path, `\coordinate (a)`,
+`\matrix (m)` or a `name=a` option; the name may come before or after the
+options and the `at (x,y)`. It is used as `(a)` or `(a.north)`, in calc
+expressions such as `($(a)!0.5!(b)$)` and `fit=(a) (b)`, and as `right=of a`.
+Comments do not count. Names belong to the picture they are defined in.
+
+  - The context menu (`<localleader>a`) on a node name jumps to its
+    definition.
+  - |:TexTikzRename| renames the node under the cursor throughout its
+    picture. A name that turns up in a node's text, `{(a) is first}`, is
+    renamed along with it.
+  - `<C-x><C-u>` completes the node names of the picture and the style
+    names (`name/.style`, `\tikzstyle{name}`) of the buffer and the main
+    file. nvim-tex sets 'completefunc' for it unless something else already
+    has; `completefunc = false` leaves it alone.
+
+                                                       *nvim-tex-tikz-preview*
+Preview ~
+
+|:TexTikzPreview| (`<localleader>p`) compiles the picture under the cursor,
+cropped to its size, and opens it in the viewer. The picture is set in the
+document it comes from, so it looks as it does there:
+
+  - the preamble of the main file, from its buffer when that is open, with
+    its class, fonts, packages and macros;
+  - the `preview` package, which crops the page (a `standalone` class
+    already does);
+  - the definitions in the body before the picture, outside other pictures:
+    `\newcommand`, `\def`, `\definecolor` and the other definitions, and the
+    commands in `preview.commands`, such as a `\tikzset` in the `figure`
+    around the picture;
+  - the main document's `.aux`, so `\ref` and `\cite` resolve. A reference
+    shows the number of the last full compilation. Tectonic only keeps the
+    `.aux` with `--keep-intermediates` in `compiler.tectonic.options`.
+
+It is compiled from the project root, like the main file, into the cache
+directory, so the project's own output is never touched. Previewing again
+recompiles, and the viewer, which stays open, reloads the PDF. Definitions in
+other files included into the body before the picture are not picked up.
+>lua
+    tikz = {
+      completefunc = true,
+      preview = {
+        commands = { 'tikzset', 'tikzstyle', 'pgfmathsetmacro', ... },
+        aux = true,
+        border = '2pt',
+      },
+    }
+<
+`preview.commands` is replaced, not merged, when you set it.
 
 FOLDING                                                        *nvim-tex-fold*
 

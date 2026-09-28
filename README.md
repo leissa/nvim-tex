@@ -140,6 +140,7 @@ already buffer-local, so the extra `l` is redundant. VimTeX's
 | `<localleader>g` | status — `G` for all projects             |
 | `<localleader>a` | context menu (citation, ref, include)     |
 | `<localleader>b` | search DBLP and cite (`:TexCite`)         |
+| `<localleader>p` | preview the TikZ picture                  |
 | `<localleader>s` | toggle the main file                      |
 | `<localleader>L` | compile the selection as a standalone doc |
 | `<localleader>x` | reload — `X` clears project state         |
@@ -228,6 +229,18 @@ environments are left alone. The parse tree decides what counts as a
 delimiter, so `\{` or a brace in a comment never throws it off. In a TikZ
 picture, the lines that continue a path are indented one level until its `;`.
 See `:help nvim-tex-indent` and `:help nvim-tex-tikz`.
+
+## TikZ
+
+`:TexTikzPreview` (`<localleader>p`) compiles the picture under the cursor on
+its own, cropped, and shows it. It takes the preamble of the main file, the
+definitions in the body before the picture (a `\tikzset` in the surrounding
+`figure`, say) and the main `.aux`, so macros, styles and `\ref`s all work.
+Previewing again recompiles into the open viewer.
+
+On a node name, the context menu jumps to the node's definition;
+`:TexTikzRename` renames it throughout the picture, and `<C-x><C-u>`
+completes node and style names. See `:help nvim-tex-tikz`.
 
 ## Folding
 

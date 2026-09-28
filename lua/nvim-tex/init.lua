@@ -25,6 +25,7 @@ local function buffer_options(bufnr)
     -- `<` and `>` are ordinary characters in LaTeX, not a pair.
     vim.opt_local.matchpairs:remove('<:>')
   end)
+  require('nvim-tex.tikz.nodes').attach(bufnr)
 end
 
 --- Is there a `highlights` query for the `latex` parser?

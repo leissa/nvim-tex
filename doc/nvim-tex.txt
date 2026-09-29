@@ -146,6 +146,8 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
                             `'skim'` or `'general'`. See |nvim-tex-viewer|.
 `view.forward_search_on_start`
                             Jump to the cursor position when opening.
+`view.snacks`                 Show fragments in a floating window. See
+                            |nvim-tex-viewer-float|.
 
 `qf.*`                        See |nvim-tex-quickfix|.
 `lsp.*`                       See |nvim-tex-lsp|.
@@ -361,7 +363,8 @@ An entry understands these keys:
                                                          *:TexCompileSelected*
 :[range]TexCompileSelected
                         Compile [range] as a standalone document, reusing the
-                        preamble of the main file, and view the result.
+                        preamble of the main file, and view the result
+                        (see |nvim-tex-viewer-float|).
                                                            *:TexCompileOutput*
 :TexCompileOutput       Show the raw compiler output.
                                                     *:TexStop* *:TexStopAll*
@@ -570,6 +573,21 @@ and `@server` are substituted in `view.general.args`: >lua
       },
     }
 <
+
+                                                         *nvim-tex-viewer-float*
+Floating window ~
+Fragments compiled on their own, by |:TexTikzPreview| and
+|:TexCompileSelected|, pop up in a floating window at the cursor instead of
+the viewer, when all of these hold:
+
+  - `view.snacks` is on (the default);
+  - snacks.nvim is installed with its image support enabled
+    (`image = { enabled = true }` in its setup);
+  - the terminal can show images (see `:checkhealth snacks`).
+
+The window closes when the cursor moves. Its size is bounded by snacks'
+`image.doc.max_width` and `image.doc.max_height`. Otherwise, or with
+`view.snacks = false`, the viewer opens as usual.
 ==============================================================================
 10. QUICKFIX                                                *nvim-tex-quickfix*
 
@@ -770,7 +788,8 @@ Comments do not count. Names belong to the picture they are defined in.
 Preview ~
 
 |:TexTikzPreview| (`<localleader>p`) compiles the picture under the cursor,
-cropped to its size, and opens it in the viewer. The picture is set in the
+cropped to its size, and opens it in the viewer, or right in the terminal
+with |nvim-tex-viewer-float|. The picture is set in the
 document it comes from, so it looks as it does there:
 
   - the preamble of the main file, from its buffer when that is open, with

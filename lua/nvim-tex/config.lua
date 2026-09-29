@@ -88,6 +88,11 @@ M.defaults = {
     method = 'auto',
     --- Jump to the cursor position in the PDF right after opening the viewer.
     forward_search_on_start = true,
+    --- Show compiled fragments (`:TexTikzPreview`, `:TexCompileSelected`) in
+    --- a floating window at the cursor with snacks.nvim's image support,
+    --- when it is enabled and the terminal can show images, instead of in
+    --- the viewer.
+    snacks = true,
 
     zathura = {
       executable = 'zathura',

@@ -315,13 +315,7 @@ function M.compile_selected(project, lines)
   vim.list_extend(document, lines)
   document[#document + 1] = '\\end{document}'
 
-  M.compile_fragment(project, 'selected', document, function(fragment)
-    local viewer = require('nvim-tex.viewer')
-    -- A running viewer reloads the PDF by itself.
-    if not viewer.is_running(fragment) then
-      viewer.view(fragment, { forward_search = false })
-    end
-  end)
+  M.compile_fragment(project, 'selected', document, require('nvim-tex.viewer').show_fragment)
 end
 
 ---@param project table

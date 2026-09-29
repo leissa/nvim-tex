@@ -209,6 +209,19 @@ function _G.NvimTexInverseSearch(line, file)
   return 0
 end
 
+--- Show a compiled fragment (see `compiler.compile_fragment`): in a floating
+--- window with `view.snacks`, or else in the viewer, which reloads the PDF by
+--- itself when it is running.
+---@param fragment table
+function M.show_fragment(fragment)
+  if require('nvim-tex.viewer.float').show(fragment) then
+    return
+  end
+  if not M.is_running(fragment) then
+    M.view(fragment, { forward_search = false })
+  end
+end
+
 --- Close the viewer belonging to `project`.
 ---@param project table
 function M.close(project)

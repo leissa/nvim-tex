@@ -236,7 +236,10 @@ See `:help nvim-tex-indent` and `:help nvim-tex-tikz`.
 its own, cropped, and shows it. It takes the preamble of the main file, the
 definitions in the body before the picture (a `\tikzset` in the surrounding
 `figure`, say) and the main `.aux`, so macros, styles and `\ref`s all work.
-Previewing again recompiles into the open viewer.
+Previewing again recompiles into the open viewer. With
+[snacks.nvim](https://github.com/folke/snacks.nvim)'s image support enabled and
+a terminal that can show images, the picture pops up in a floating window at
+the cursor instead (`view.snacks`).
 
 On a node name, the context menu jumps to the node's definition;
 `:TexTikzRename` renames it throughout the picture, and `<C-x><C-u>`

@@ -146,8 +146,9 @@ The full default table lives in `lua/nvim-tex/config.lua` and is printed by
                             `'skim'` or `'general'`. See |nvim-tex-viewer|.
 `view.forward_search_on_start`
                             Jump to the cursor position when opening.
-`view.snacks`                 Show fragments in a floating window. See
-                            |nvim-tex-viewer-float|.
+`view.snacks.enabled`         Show fragments right in the buffer. See
+                            |nvim-tex-viewer-snacks|.
+`view.snacks.scale`           Their magnification (`2`).
 
 `qf.*`                        See |nvim-tex-quickfix|.
 `lsp.*`                       See |nvim-tex-lsp|.
@@ -364,7 +365,7 @@ An entry understands these keys:
 :[range]TexCompileSelected
                         Compile [range] as a standalone document, reusing the
                         preamble of the main file, and view the result
-                        (see |nvim-tex-viewer-float|).
+                        (see |nvim-tex-viewer-snacks|).
                                                            *:TexCompileOutput*
 :TexCompileOutput       Show the raw compiler output.
                                                     *:TexStop* *:TexStopAll*
@@ -574,20 +575,28 @@ and `@server` are substituted in `view.general.args`: >lua
     }
 <
 
-                                                         *nvim-tex-viewer-float*
-Floating window ~
+                                                        *nvim-tex-viewer-snacks*
+In the buffer ~
 Fragments compiled on their own, by |:TexTikzPreview| and
-|:TexCompileSelected|, pop up in a floating window at the cursor instead of
-the viewer, when all of these hold:
+|:TexCompileSelected|, show up in the buffer right below their last line
+(`\end{tikzpicture}`, the last selected line) instead of in the viewer, when
+all of these hold:
 
-  - `view.snacks` is on (the default);
+  - `view.snacks.enabled` is on (the default);
   - snacks.nvim is installed with its image support enabled
     (`image = { enabled = true }` in its setup);
   - the terminal can show images (see `:checkhealth snacks`).
 
-The window closes when the cursor moves. Its size is bounded by snacks'
-`image.doc.max_width` and `image.doc.max_height`. Otherwise, or with
-`view.snacks = false`, the viewer opens as usual.
+In terminals with unicode placeholders (kitty, ghostty) the image sits in
+virtual lines that move with the text; elsewhere in a floating window over
+the lines below. It stays until the next fragment replaces it or
+|:TexPreviewClose|. It is shown at `view.snacks.scale` times its printed size,
+bounded by the window and by snacks' `image.doc.max_width` and
+`image.doc.max_height`. Otherwise, or with `view.snacks.enabled = false`, the
+viewer opens as usual.
+
+                                                            *:TexPreviewClose*
+:TexPreviewClose        Remove the fragment shown in the buffer.
 ==============================================================================
 10. QUICKFIX                                                *nvim-tex-quickfix*
 
@@ -789,7 +798,7 @@ Preview ~
 
 |:TexTikzPreview| (`<localleader>p`) compiles the picture under the cursor,
 cropped to its size, and opens it in the viewer, or right in the terminal
-with |nvim-tex-viewer-float|. The picture is set in the
+below the picture with |nvim-tex-viewer-snacks|. The picture is set in the
 document it comes from, so it looks as it does there:
 
   - the preamble of the main file, from its buffer when that is open, with

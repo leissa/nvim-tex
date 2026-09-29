@@ -256,12 +256,14 @@ end
 --- Compile `document` as a document of its own, in a throwaway project
 --- that shares the root of `project`, so relative paths resolve, but never
 --- its state or output files. The throwaway project is kept on `project`
---- under `name`, so the next run reuses it and the viewer it opened.
+--- under `name`, so the next run reuses it and the viewer it opened. The
+--- result is shown below line `row` (0-based) of `buf`, where edits in the
+--- meantime have moved it, with `view.snacks`.
 ---@param project table
 ---@param name string
 ---@param document string[]
----@param on_success fun(fragment: table)|nil
-function M.compile_fragment(project, name, document, on_success)
+---@param anchor { buf: integer, row: integer }
+function M.compile_fragment(project, name, document, anchor)
   local dir = project_mod.cache_dir(project)
   local target = util.join(dir, name .. '.tex')
   util.writelines(target, document)
@@ -284,19 +286,24 @@ function M.compile_fragment(project, name, document, on_success)
   end
   fragment.tex_program = project.tex_program
 
+  local mark = require('nvim-tex.viewer.snacks').anchor(anchor.buf, anchor.row)
   M.start(fragment, {
     continuous = false,
-    on_success = on_success and function()
-      on_success(fragment)
+    on_success = function()
+      require('nvim-tex.viewer').show_fragment(fragment, mark)
     end,
   })
 end
 
---- Compile a fragment (visual selection or motion) as a standalone document,
---- reusing the preamble of the main file.
+--- Compile lines `first` to `last` (1-based) of the current buffer (visual
+--- selection or motion) as a standalone document, reusing the preamble of
+--- the main file.
 ---@param project table
----@param lines string[]
-function M.compile_selected(project, lines)
+---@param first integer
+---@param last integer
+function M.compile_selected(project, first, last)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local lines = vim.api.nvim_buf_get_lines(bufnr, first - 1, last, false)
   local main_lines = util.readlines(project.main)
   local preamble = {}
   for _, line in ipairs(main_lines) do
@@ -315,7 +322,7 @@ function M.compile_selected(project, lines)
   vim.list_extend(document, lines)
   document[#document + 1] = '\\end{document}'
 
-  M.compile_fragment(project, 'selected', document, require('nvim-tex.viewer').show_fragment)
+  M.compile_fragment(project, 'selected', document, { buf = bufnr, row = last - 1 })
 end
 
 ---@param project table

@@ -238,8 +238,9 @@ definitions in the body before the picture (a `\tikzset` in the surrounding
 `figure`, say) and the main `.aux`, so macros, styles and `\ref`s all work.
 Previewing again recompiles into the open viewer. With
 [snacks.nvim](https://github.com/folke/snacks.nvim)'s image support enabled and
-a terminal that can show images, the picture pops up in a floating window at
-the cursor instead (`view.snacks`).
+a terminal that can show images, the picture shows up right below
+`\end{tikzpicture}` instead, until the next preview or `:TexPreviewClose`
+(`view.snacks`).
 
 On a node name, the context menu jumps to the node's definition;
 `:TexTikzRename` renames it throughout the picture, and `<C-x><C-u>`

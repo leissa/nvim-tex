@@ -27,8 +27,7 @@ end
 --- `operatorfunc` for `<localleader>L` in normal mode.
 ---@param _ string
 function M.op_compile_selected(_)
-  local first, last = vim.fn.line("'["), vim.fn.line("']")
-  compiler.compile_selected(project(), vim.api.nvim_buf_get_lines(0, first - 1, last, false))
+  compiler.compile_selected(project(), vim.fn.line("'["), vim.fn.line("']"))
 end
 
 --- `operatorfunc` for the operator variant of the environment surround.
@@ -91,8 +90,7 @@ local function leader_maps(map, prefix)
   end, 'compile the operated text', { expr = true })
   map('x', prefix .. 'L', function()
     vim.cmd('normal! ' .. vim.api.nvim_replace_termcodes('<Esc>', true, false, true))
-    local first, last = vim.fn.line("'<"), vim.fn.line("'>")
-    compiler.compile_selected(project(), vim.api.nvim_buf_get_lines(0, first - 1, last, false))
+    compiler.compile_selected(project(), vim.fn.line("'<"), vim.fn.line("'>"))
   end, 'compile the selection')
   map('n', prefix .. 'S', function()
     compiler.compile_single_shot(project())

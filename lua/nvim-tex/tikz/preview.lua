@@ -12,8 +12,8 @@
 ---
 --- The document is compiled from the project root, like the main file, in a
 --- throwaway project that keeps its viewer between runs: previewing again
---- recompiles, and the viewer reloads the PDF, or the picture pops up in a
---- floating window (`view.snacks`).
+--- recompiles, and the viewer reloads the PDF, or the picture shows up below
+--- it in the buffer (`view.snacks`).
 local compiler = require('nvim-tex.compiler')
 local config = require('nvim-tex.config')
 local tikz = require('nvim-tex.tikz')
@@ -195,7 +195,9 @@ function M.preview(project)
     util.error(err)
     return
   end
-  compiler.compile_fragment(project, 'tikz-preview', document, require('nvim-tex.viewer').show_fragment)
+  -- Below `\end{tikzpicture}`.
+  local _, _, last = ts.range(picture)
+  compiler.compile_fragment(project, 'tikz-preview', document, { buf = bufnr, row = last - 1 })
 end
 
 return M

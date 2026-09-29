@@ -209,12 +209,13 @@ function _G.NvimTexInverseSearch(line, file)
   return 0
 end
 
---- Show a compiled fragment (see `compiler.compile_fragment`): in a floating
---- window with `view.snacks`, or else in the viewer, which reloads the PDF by
---- itself when it is running.
+--- Show a compiled fragment (see `compiler.compile_fragment`): below `anchor`
+--- in the buffer with `view.snacks`, or else in the viewer, which reloads the
+--- PDF by itself when it is running.
 ---@param fragment table
-function M.show_fragment(fragment)
-  if require('nvim-tex.viewer.float').show(fragment) then
+---@param anchor NvimTexAnchor|nil
+function M.show_fragment(fragment, anchor)
+  if require('nvim-tex.viewer.snacks').show(fragment, anchor) then
     return
   end
   if not M.is_running(fragment) then

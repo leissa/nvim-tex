@@ -17,13 +17,6 @@ local function project()
   return project_mod.get(0)
 end
 
----@param first integer
----@param last integer
----@return string[]
-local function lines_in_range(first, last)
-  return vim.api.nvim_buf_get_lines(0, first - 1, last, false)
-end
-
 --- `:TexCountWords` / `:TexCountLetters`.
 ---@param letters boolean
 ---@return function
@@ -32,7 +25,7 @@ local function count(letters)
     texcount.count(project(), {
       letters = letters,
       detailed = opts.bang,
-      lines = opts.range > 0 and lines_in_range(opts.line1, opts.line2) or nil,
+      lines = opts.range > 0 and vim.api.nvim_buf_get_lines(0, opts.line1 - 1, opts.line2, false) or nil,
     })
   end
 end
@@ -56,7 +49,7 @@ local COMMANDS = {
   {
     'TexCompileSelected',
     function(opts)
-      compiler.compile_selected(project(), lines_in_range(opts.line1, opts.line2))
+      compiler.compile_selected(project(), opts.line1, opts.line2)
     end,
     { range = true, desc = 'Compile the selected lines as a standalone document' },
   },
@@ -199,6 +192,13 @@ local COMMANDS = {
       require('nvim-tex.tikz.preview').preview(project())
     end,
     { desc = 'Compile the TikZ picture under the cursor on its own and show it' },
+  },
+  {
+    'TexPreviewClose',
+    function()
+      require('nvim-tex.viewer.snacks').close()
+    end,
+    { desc = 'Remove the fragment preview from the buffer' },
   },
   {
     'TexTikzRename',
